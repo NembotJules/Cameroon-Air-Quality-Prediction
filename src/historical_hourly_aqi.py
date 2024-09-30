@@ -11,6 +11,7 @@ openmeteo = openmeteo_requests.Client(session = retry_session)
 
 # Make sure all required weather variables are listed here
 # The order of variables in hourly or daily is important to assign them correctly below
+#cities
 CITIES = [
 
     {"name": "Douala", "lat": 4.0483, "lon": 9.7043}, 
