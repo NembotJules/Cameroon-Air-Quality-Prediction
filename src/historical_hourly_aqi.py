@@ -78,4 +78,4 @@ for city in CITIES:
     hourly_data["uv_index_clear_sky"] = hourly_uv_index_clear_sky
 
     hourly_aqi_dataframe = pd.DataFrame(data = hourly_data)
-    hourly_aqi_dataframe.to_csv(f'hourly_aqi_{city["name"]}_dataframe')
+    hourly_aqi_dataframe.to_csv(f'../hourly_aqi_data/hourly_aqi_{city["name"]}_dataframe.csv')
