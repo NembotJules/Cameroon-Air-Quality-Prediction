@@ -1,0 +1,4 @@
+#Mlflow artifacts
+
+/mlflow_artifacts
+backend.db
