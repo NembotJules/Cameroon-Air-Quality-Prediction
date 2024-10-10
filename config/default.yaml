@@ -1,0 +1,66 @@
+#General settings
+random_state: 42
+n_jobs: -1
+
+#MLflow settings
+mlflow: 
+    experiment_name: "air-quality-prediction"
+    tracking_uri: "http://127.0.0.1:5000"
+    tags: 
+        Project: "Cameroon Air Quality Prediction"
+        Team: "MaxTheKing"
+        MLflow Experiment: "air-quality-prediction"
+
+#Data Settings
+data: 
+    raw_train_data_path: "../data/train_test_data/train.csv"
+    raw_test_data_path: "../data/train_test_data/test.csv"
+    test_data_path: "data/test/test.csv"
+    sample_submission_path: "data/sample_submission.csv"
+
+#Cross-validation settings
+cv: 
+  n_splits: 10
+  shuffle: true
+  random_state: 42
+
+#Model parameters
+models:
+  xgbr:
+    max_depth: 12
+    learning_rate: 0.03901791174896904
+    n_estimators: 890
+    min_child_weight: 10
+    subsample: 0.6548229230133954
+    colsample_bytree: 0.9970536771243924
+    reg_alpha: 0.00008440168345703873
+    reg_lambda: 0.00001153361918282702
+    verbosity: 0
+
+  xgbr1:
+    n_estimators: 1312
+    learning_rate: 0.018279520260162645
+    gamma: 0.0024196354156454324
+    reg_alpha: 0.9025931173755949
+    reg_lambda: 0.06835667255875388
+    max_depth: 5
+    min_child_weight: 5
+    subsample: 0.883274050086088
+    colsample_bytree: 0.6579828557036317
+    verbosity: 0
+
+  lgbmr:
+    objective: "regression"
+    metric: "rmse"
+    verbosity: -1
+    boosting_type: "gbdt"
+    learning_rate: 0.030962211546832760
+    n_estimators: 500
+    lambda_l1: 0.009667446568254372
+    lambda_l2: 0.04018641437301800
+    max_depth: 10
+    colsample_bytree: 0.40977129346872643
+    subsample: 0.9535797422450176
+    min_child_samples: 26
+
+#Data settings
