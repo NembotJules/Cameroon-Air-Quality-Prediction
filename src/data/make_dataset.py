@@ -90,25 +90,19 @@ def preprocess_data(df):
     return X, y
 
 
-def split_data(df):
-
-    #Load preprocessed data
-
-    X, y = preprocess_data(df)
-    # Split the data into training and testing sets
-    X_train, y_train, X_test, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-    return X_train, y_train, X_test, y_test
+    
+    
 
 
 def save_data(df, file_path):
 
-    X_train, y_train, X_test, y_test = split_data(df)
-    print(X_train.head(5), X_test.head(5))
-
+    X, y = preprocess_data(df)
+    X.to_csv(file_path + 'X.csv', index = False)
+    y.to_csv(file_path + 'y.csv', index = False)
 
 if __name__ == "__main__":
     df = load_data('../../data/train_test_data/train.csv')
-    save_data(df, 'data/processed/train.csv') 
+    save_data(df, '../../data/train_test_data/') 
 
 
 
