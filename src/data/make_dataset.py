@@ -80,9 +80,15 @@ def preprocessor_transform(X,numeric_features, categorical_features):
 
 def preprocess_data(df):
 
-    X = clean_data(df).drop('pm2_5', axis = 1)
-    y = clean_data(df)['pm2_5']
+    if 'pm2_5' in df.columns: 
+        X = clean_data(df).drop('pm2_5', axis = 1)
+        y = clean_data(df)['pm2_5']
 
+    else: 
+        X = clean_data(df)
+        y = None
+
+    
     numeric_features, categorical_features = create_categorical_and_numeric_features(X)
 
     X = preprocessor_transform(X, numeric_features, categorical_features)
@@ -97,12 +103,17 @@ def preprocess_data(df):
 def save_data(df, file_path):
 
     X, y = preprocess_data(df)
-    X.to_csv(file_path + 'X.csv', index = False)
-    y.to_csv(file_path + 'y.csv', index = False)
+    X.to_csv(file_path + f'{df}_X.csv', index = False)
+
+    if y is not None: 
+        y.to_csv(file_path + f'{df}_y.csv', index = False)
 
 if __name__ == "__main__":
     df = load_data('../../data/train_test_data/train.csv')
-    save_data(df, '../../data/train_test_data/') 
+    test_data = load_data('../../data/train_test_data/test.csv')
+    save_data(df, '../../data/train_test_data/preprocessed_data/') 
+    save_data(test_data, '../../data/train_test_data/preprocessed_data/') 
+
 
 
 
