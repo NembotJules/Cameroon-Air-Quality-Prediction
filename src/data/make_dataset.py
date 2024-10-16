@@ -102,10 +102,10 @@ def preprocess_data(df):
 def save_data(df, file_path):
 
     X, y = preprocess_data(df)
-    X.to_csv(file_path + f'"{df}"_X.csv', index = False)
+    X.to_csv(file_path + f"'{df}' + '_X.csv'", index = False)
 
     if y is not None: 
-        y.to_csv(file_path + f'"{df}"_y.csv', index = False)
+        y.to_csv(file_path + f"'{df}' + '_y.csv'", index = False)
 
 if __name__ == "__main__":
     df = load_data('../../data/train_test_data/train.csv')
