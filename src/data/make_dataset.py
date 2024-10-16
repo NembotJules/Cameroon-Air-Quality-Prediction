@@ -99,19 +99,19 @@ def preprocess_data(df):
     
 
 
-def save_data(df, file_path):
+def save_data(df, file_path, dataset_name):
 
     X, y = preprocess_data(df)
-    X.to_csv(file_path + f"'{df}' + '_X.csv'", index = False)
+    X.to_csv(file_path + f"{dataset_name}_X.csv", index=False)
 
     if y is not None: 
-        y.to_csv(file_path + f"'{df}' + '_y.csv'", index = False)
+        y.to_csv(file_path + f"{dataset_name}_y.csv", index = False)
 
 if __name__ == "__main__":
     df = load_data('../../data/train_test_data/train.csv')
     test_data = load_data('../../data/train_test_data/test.csv')
-    save_data(df, '../../data/train_test_data/preprocessed_data/') 
-    save_data(test_data, '../../data/train_test_data/preprocessed_data/') 
+    save_data(df, '../../data/train_test_data/preprocessed_data/', 'train') 
+    save_data(test_data, '../../data/train_test_data/preprocessed_data/', 'test') 
 
 
 
