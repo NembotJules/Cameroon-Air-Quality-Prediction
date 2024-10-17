@@ -15,6 +15,7 @@ mlflow.set_tracking_uri(default_config["mlflow"]["tracking_uri"])
 mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 
 
+
 def train_model(X, y): 
 
     logged_model = f'runs:/{best_run_id}/{best_model_name}'
