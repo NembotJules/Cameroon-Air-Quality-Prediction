@@ -1,33 +1,68 @@
 import mlflow
 import pandas as pd
+import yaml
+from sklearn.metrics import root_mean_squared_error
+
+default_config_name = "../../config/default.yaml"
+
+with open(default_config_name, "r") as file: 
+    default_config = yaml.safe_load(file)
 
 
-best_run_id = '06c745047aa74cc3abdf15de9d58704d'
-best_model_name = 'XGBR2'
+best_run_id = default_config["mlflow"]["best_run_id"]
+best_model_name = default_config["mlflow"]["best_model_name"]
+mlflow.set_tracking_uri(default_config["mlflow"]["tracking_uri"])
+mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 
-mlflow.set_tracking_uri('http://35.153.184.244:5000/')
-mlflow.set_experiment('air-quality-prediction')
 
 def train_model(X, y): 
 
     logged_model = f'runs:/{best_run_id}/{best_model_name}'
+# Load model as a PyFuncModel.
+    model = mlflow.xgboost.load_model(logged_model)
 
-    # Load model as a PyFuncModel.
-    XGBR2 = mlflow.xgboost.load_model(logged_model)
+     # Retrieve the run that created this model
+    run = mlflow.get_run(best_run_id)
+    
+    # Print the parameters used during training
+    print("Model parameters:")
+    for param, value in run.data.params.items():
+        print(f"{param}: {value}")
 
-    # Train the model on the full dataset
-    XGBR2.fit(X, y) 
+    model.fit(X, y)
 
-    # Log the model with mlflow
-    mlflow.xgboost.log_model(XGBR2, artifact_path = best_model_name)
+    return model
 
-    return XGBR2
+
+def evaluate_model(X, model, test_data, y, test_target): 
+    # Evaluate training performance 
+    y_train_pred = model.predict(X)
+    train_rmse = root_mean_squared_error(y, y_train_pred)
+    print(f'Training RMSE: {train_rmse}')
+    # Evaluate testing performance 
+    y_test_pred = model.predict(test_data)
+    test_rmse = root_mean_squared_error(test_target, y_test_pred)
+    print(f'Testing RMSE: {test_rmse}')
+  
+    return train_rmse, test_rmse
+
 
 
 if __name__ == "__main__": 
 
-    X = pd.read_csv('../../data/train_test_data/X.csv')
-    y = pd.read_csv('../../data/train_test_data/y.csv')
+    with mlflow.start_run():
+        X = pd.read_csv(default_config["data"]["preprocessed_train_data_path"])
+        y = pd.read_csv(default_config["data"]["preprocessed_train_target_path"])
+        test_data = pd.read_csv(default_config["data"]["preprocessed_test_data_path"])
+        test_target = pd.read_csv(default_config["data"]["preprocessed_test_target_path"])
+        model = train_model(X, y)
+        train_rmse, test_rmse =  evaluate_model(X, model, test_data, y, test_target)  
 
-    train_model(X, y)
+        mlflow.log_metric('train_rmse', train_rmse)
+        mlflow.log_metric('test_rmse', test_rmse)
 
+        mlflow.xgboost.log_model(
+                registered_model_name = best_model_name,
+                artifact_path = best_model_name,
+                xgb_model = model,
+                input_example = X)
