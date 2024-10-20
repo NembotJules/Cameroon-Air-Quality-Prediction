@@ -127,19 +127,17 @@ def save_data(df, file_path):
             if len(X) != len(y): 
                 print(f"Warning: X and y have different lengths. No data will be saved.")
                 return 
-           # y.to_csv(default_config["data"]["preprocessed_train_target_path"], index = False)
-            y.to_csv('../../data/train_test_data/preprocessed_data/train_y.csv', index = False)
+            y.to_csv(default_config["data"]["preprocessed_train_target_path"], index = False)
+           
             print(" Train Target data saved successfully.")
             print(y.shape)
 
-            #X.to_csv(default_config["data"]["preprocessed_train_data_path"], index=False)
-            X.to_csv('../../data/train_test_data/preprocessed_data/train_X.csv', index = False)
+            X.to_csv(default_config["data"]["preprocessed_train_data_path"], index=False)
             print("Training Feature data saved successfully.")
             print(X.shape)
 
         else: 
-            #X.to_csv(default_config["data"]["preprocessed_test_data_path"], index=False)
-            X.to_csv('../../data/train_test_data/preprocessed_data/test_X.csv', index = False)
+            X.to_csv(default_config["data"]["preprocessed_test_data_path"], index=False)
             print("Test Feature data saved successfully.")
             print(X.shape)
 
@@ -152,10 +150,10 @@ def save_data(df, file_path):
 if __name__ == "__main__":
 
 
-    df = load_data('../../data/train_test_data/raw_data/train.csv')
-    test_data = load_data('../../data/train_test_data/raw_data/test.csv')
-    save_data(df, '../../data/train_test_data/preprocessed_data/train_X.csv') 
-    save_data(test_data, '../../data/train_test_data/preprocessed_data/test_X.csv') 
+    df = load_data(default_config["data"]["raw_train_data_path"])
+    test_data = load_data(default_config["data"]["raw_test_data_path"])
+    save_data(df, default_config["data"]["preprocessed_train_data_path"]) 
+    save_data(test_data, default_config["data"]["preprocessed_test_data_path"]) 
 
 
 
