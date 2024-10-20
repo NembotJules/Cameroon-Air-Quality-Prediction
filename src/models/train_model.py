@@ -2,8 +2,16 @@ import mlflow
 import pandas as pd
 import yaml
 from sklearn.metrics import root_mean_squared_error
+import os
 
-default_config_name = "../../config/default.yaml"
+
+# Get the directory of the current file
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the path to the config file
+default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.yaml')
+
+#default_config_name = "../../config/default.yaml"
 
 with open(default_config_name, "r") as file: 
     default_config = yaml.safe_load(file)
@@ -17,6 +25,34 @@ mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 
 
 def train_model(X, y): 
+
+    """
+    Train the model with input validation.
+    
+    Args:
+        X (pd.DataFrame): Training features
+        y (pd.Series or pd.DataFrame): Training target
+        
+    Returns:
+        trained model
+        
+    Raises:
+        TypeError: If inputs are not pandas DataFrame/Series
+        ValueError: If inputs are empty or have different lengths
+    """
+
+    # Input validation
+    if not isinstance(X, pd.DataFrame):
+        raise TypeError("X must be a pandas DataFrame")
+    
+    if not isinstance(y, (pd.Series, pd.DataFrame)):
+        raise TypeError("y must be a pandas Series or DataFrame")
+        
+    if X.empty or y.empty:
+        raise ValueError("Input data cannot be empty")
+        
+    if len(X) != len(y):
+        raise ValueError("X and y must have the same number of samples")
 
     logged_model = f'runs:/{best_run_id}/{best_model_name}'
 # Load model as a PyFuncModel.
