@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from contextlib import asynccontextmanager
 import pandas as pd
 import mlflow
 import yaml
@@ -11,25 +12,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load config
-with open("config/default.yaml", "r") as file:
+with open("../../config/default.yaml", "r") as file:
     config = yaml.safe_load(file)
 
-app = FastAPI(
-    title="Cameroon Air Quality Prediction API",
-    description="API for predicting air quality metrics",
-    version="1.0.0"
-)
-
-class PredictionInput(BaseModel):
-    features: Dict[str, List[float]]
-
-class PredictionResponse(BaseModel):
-    predictions: List[float]
-    model_version: str
-
-# Load model at startup
-@app.on_event("startup")
-async def load_model():
+# Define lifespan context manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     try:
         logger.info("Loading model...")
         mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
@@ -40,11 +29,30 @@ async def load_model():
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
         raise
+    yield
+    # Shutdown
+    # Add any cleanup code here if needed
+
+app = FastAPI(
+    title="Cameroon Air Quality Prediction API",
+    description="API for predicting air quality metrics",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+class PredictionInput(BaseModel):
+    features: Dict[str, List[float]]
+
+class PredictionResponse(BaseModel):
+    predictions: List[float]
+    version: str  # Changed from model_version to version
+    
+    model_config = ConfigDict(protected_namespaces=())  # Disables protected namespace warning
 
 @app.get("/")
 async def root():
     return {"message": "Air Quality Prediction API", 
-            "model_version": app.state.model_version}
+            "version": app.state.model_version}  # Updated to match the response model
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(input_data: PredictionInput):
@@ -57,7 +65,7 @@ async def predict(input_data: PredictionInput):
         
         return PredictionResponse(
             predictions=predictions.tolist(),
-            model_version=app.state.model_version
+            version=app.state.model_version  # Updated to match the field name
         )
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
@@ -65,4 +73,4 @@ async def predict(input_data: PredictionInput):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "model_version": app.state.model_version}
+    return {"status": "healthy", "version": app.state.model_version}  # Updated for consistency
