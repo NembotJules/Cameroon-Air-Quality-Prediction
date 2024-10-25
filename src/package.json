@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@radix-ui/react-select": "^2.1.2",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.453.0",
+    "react-leaflet": "^4.2.1",
+    "recharts": "^2.13.0"
+  }
+}
