@@ -1,6 +1,7 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 import openmeteo_requests
 import requests_cache
+import os
 import pandas as pd
 from retry_requests import retry
 
@@ -86,6 +87,8 @@ def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features:
                 inclusive="left"
             ),
             "city": city["name"],
+            "latitude": city["lat"], 
+            "longitude": city["lon"],
             "weather_code": daily.Variables(0).ValuesAsNumpy(),
             "temperature_2m_max": daily.Variables(1).ValuesAsNumpy(),
             "temperature_2m_min": daily.Variables(2).ValuesAsNumpy(),
@@ -114,7 +117,7 @@ def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features:
     
     # Save the combined DataFrame to CSV and return it
     print(f"The shape of the daily weather dataframe is {combined_daily_df.shape}")
-    combined_daily_df.to_csv('combined_daily_df.csv', index = False)
+    combined_daily_df.to_csv('combined_daily_weather_df.csv', index = False)
     return combined_daily_df
 
 
@@ -163,6 +166,8 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
                 inclusive="left"
             ),
             "city": city["name"],
+            "latitude": city["lat"], 
+            "longitude": city["lon"],
             "carbon_monoxide": hourly.Variables(0).ValuesAsNumpy(),
             "nitrogen_dioxide": hourly.Variables(1).ValuesAsNumpy(),
             "sulphur_dioxide": hourly.Variables(2).ValuesAsNumpy(),
@@ -199,8 +204,43 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     return combined_daily_aqi_df
 
 
-def merge_aqi_weather_df(aqi_df:pd.DataFrame, weather_df:pd.DataFrame)-> pd.DataFrame: 
-    pass
+
+
+def merge_aqi_weather_df(aqi_df_path: str, weather_df_path: str) -> Optional[pd.DataFrame]:
+    """
+    Combines weather_df and aqi_df on matching date and city rows.
+
+    Args: 
+        aqi_df_path (str): Path to the daily AQI DataFrame (CSV file with 'date' and 'city' columns).
+        weather_df_path (str): Path to the daily weather DataFrame (CSV file with 'date' and 'city' columns).
+
+    Returns: 
+        pd.DataFrame: DataFrame containing daily weather and AQI data for all the cities,
+        or None if files are not found or merging fails.
+    """
+
+    # Check if both files exist
+    if not os.path.exists(aqi_df_path) or not os.path.exists(weather_df_path):
+        print("Error: One or both of the input files were not found.")
+        return None
+
+    try:
+        # Load data from the CSV files
+        aqi_df = pd.read_csv(aqi_df_path)
+        weather_df = pd.read_csv(weather_df_path)
+        
+        # Merge DataFrames on 'date' and 'city'
+        combined_df = pd.merge(weather_df, aqi_df, on=['date', 'city', 'latitude', 'longitude'], how='inner')
+        
+        # Save combined DataFrame to CSV
+        combined_df.to_csv('daily_weather_aqi_df.csv', index=False)
+        
+        return combined_df
+
+    except Exception as e:
+        print(f"Error occurred during merging: {e}")
+        return None
+
     
 
 
@@ -208,3 +248,4 @@ def merge_aqi_weather_df(aqi_df:pd.DataFrame, weather_df:pd.DataFrame)-> pd.Data
 if __name__== "__main__": 
     create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
     create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
+    merge_aqi_weather_df(aqi_df_path='combined_daily_aqi_df.csv', weather_df_path='combined_daily_weather_df.csv')
