@@ -4,6 +4,7 @@ import requests_cache
 import os
 import pandas as pd
 from retry_requests import retry
+from prefect import flow, task
 
 # Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -37,7 +38,7 @@ weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min
                  "precipitation_sum", "rain_sum", "snowfall_sum", "precipitation_hours", "wind_speed_10m_max",
                    "wind_gusts_10m_max", "wind_direction_10m_dominant", "shortwave_radiation_sum", "et0_fao_evapotranspiration"]
 
-
+@task
 def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features: List[str]) -> pd.DataFrame: 
     """
     Fetches weather data for each city, processes it, and combines it into a DataFrame.
@@ -120,7 +121,7 @@ def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features:
     combined_daily_df.to_csv('combined_daily_weather_df.csv', index = False)
     return combined_daily_df
 
-
+@task
 def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[str])-> pd.DataFrame: 
     """
     Fetches AQI data for each city, processes hourly data to daily averages, and combines it into a final DataFrame.
@@ -205,7 +206,7 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
 
 
 
-
+@task
 def merge_aqi_weather_df(aqi_df_path: str, weather_df_path: str) -> Optional[pd.DataFrame]:
     """
     Combines weather_df and aqi_df on matching date and city rows.
@@ -241,11 +242,15 @@ def merge_aqi_weather_df(aqi_df_path: str, weather_df_path: str) -> Optional[pd.
         print(f"Error occurred during merging: {e}")
         return None
 
+@flow
+def etl(): 
+    create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+    create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
+    merge_aqi_weather_df(aqi_df_path='combined_daily_aqi_df.csv', weather_df_path='combined_daily_weather_df.csv')
+
     
 
 
 
 if __name__== "__main__": 
-    create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
-    create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
-    merge_aqi_weather_df(aqi_df_path='combined_daily_aqi_df.csv', weather_df_path='combined_daily_weather_df.csv')
+    etl()
