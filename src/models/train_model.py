@@ -3,6 +3,8 @@ import pandas as pd
 import yaml
 from sklearn.metrics import root_mean_squared_error
 import os
+import xgboost as xgb
+from typing import Union, Tuple
 
 
 # Get the directory of the current file
@@ -24,7 +26,7 @@ mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 
 
 
-def train_model(X, y): 
+def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegressor: 
 
     """
     Train the model with input validation.
@@ -71,7 +73,9 @@ def train_model(X, y):
     return model
 
 
-def evaluate_model(X, model, test_data, y, test_target): 
+def evaluate_model(X:pd.DataFrame, model:xgb.XGBRegressor, 
+                   test_data:pd.DataFrame, y:Union[pd.Series, pd.DataFrame], 
+                   test_target:Union[pd.Series, pd.DataFrame]) -> Tuple[float, float]: 
     # Evaluate training performance 
     y_train_pred = model.predict(X)
     train_rmse = root_mean_squared_error(y, y_train_pred)
