@@ -27,7 +27,6 @@ mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 
 
 def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegressor: 
-
     """
     Train the model with input validation.
     
@@ -36,7 +35,7 @@ def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegr
         y (pd.Series or pd.DataFrame): Training target
         
     Returns:
-        trained model
+        xgb.XGBRegressor: Trained XGBoost model
         
     Raises:
         TypeError: If inputs are not pandas DataFrame/Series
