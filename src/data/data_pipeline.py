@@ -27,6 +27,10 @@ CITIES = [
 ]
 
 weather_url = "https://api.open-meteo.com/v1/forecast"
+aqi_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
+
+aqi_features = ["carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "aerosol_optical_depth", "dust", "uv_index", "uv_index_clear_sky"]
+
 weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min", "apparent_temperature_max", 
                "apparent_temperature_min", "sunrise", "sunset", "daylight_duration", "sunshine_duration",
                  "precipitation_sum", "rain_sum", "snowfall_sum", "precipitation_hours", "wind_speed_10m_max",
@@ -105,17 +109,98 @@ def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features:
         #Create a DataFrame for the current city's data and concatenate
 
         daily_dataframe = pd.DataFrame(data = daily_data)
+        daily_dataframe['date'] = daily_dataframe['date'].dt.date
         combined_daily_df = pd.concat([combined_daily_df, daily_dataframe], axis = 0, ignore_index=True)
     
     # Save the combined DataFrame to CSV and return it
+    print(f"The shape of the daily weather dataframe is {combined_daily_df.shape}")
     combined_daily_df.to_csv('combined_daily_df.csv', index = False)
     return combined_daily_df
 
 
-def create_aqi_df(aqi_url:str)-> pd.DataFrame: 
-    pass
+def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[str])-> pd.DataFrame: 
+    """
+    Fetches AQI data for each city, processes hourly data to daily averages, and combines it into a final DataFrame.
+
+    Args: 
+        aqi_url(str): The API URL for fetching AQI data.
+        cities(List[Dict[str, float]]): A list of dicitionaries with each city's name, latitude, and longitude.
+        features (List[str]): List of AQI features to retrieve hourly data for.
+
+    Retuns: 
+        pd.DataFrame: Combined DataFrame containing daily AQI data (07 days) for all cities.
+
+    """
+
+    # Initialize an empty DataFrame for the final daily data...
+    combined_daily_aqi_df = pd.DataFrame()
+
+    for city in cities:
+        params = {
+            "latitude": city["lat"],
+            "longitude": city["lon"],
+            "hourly": features,
+            "timezone": "auto",
+            "forecast_days": 6
+        }
+
+        try:
+            responses = openmeteo.weather_api(aqi_url, params=params)
+            response = responses[0]  # Assuming a single response is expected per city
+        except Exception as e:
+            print(f"Failed to fetch data for {city['name']}: {e}")
+            continue
+
+        print(f"Fetching AQI data for {city['name']} at {response.Latitude()}°N {response.Longitude()}°E")
+
+        # Process hourly data
+        hourly = response.Hourly()
+        hourly_data = {
+            "datetime": pd.date_range(
+                start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
+                freq=pd.Timedelta(seconds=hourly.Interval()),
+                inclusive="left"
+            ),
+            "city": city["name"],
+            "carbon_monoxide": hourly.Variables(0).ValuesAsNumpy(),
+            "nitrogen_dioxide": hourly.Variables(1).ValuesAsNumpy(),
+            "sulphur_dioxide": hourly.Variables(2).ValuesAsNumpy(),
+            "ozone": hourly.Variables(3).ValuesAsNumpy(),
+            "aerosol_optical_depth": hourly.Variables(4).ValuesAsNumpy(),
+            "dust": hourly.Variables(5).ValuesAsNumpy(),
+            "uv_index": hourly.Variables(6).ValuesAsNumpy(),
+            "uv_index_clear_sky": hourly.Variables(7).ValuesAsNumpy()
+        }
+
+        hourly_df = pd.DataFrame(data=hourly_data)
+
+        # Convert hourly data to daily averages...
+        hourly_df['date'] = hourly_df['datetime'].dt.date
+        daily_df = hourly_df.groupby('date').mean(numeric_only=True).reset_index()
+        
+
+        # Impute missing values with forward and back fill...
+        daily_df.ffill(inplace=True)
+        daily_df.bfill(inplace=True)
+        
+        # Assign the city name to each row in daily data...
+        daily_df['city'] = city["name"]
+
+        # Combine each city's daily data
+        combined_daily_aqi_df = pd.concat([combined_daily_aqi_df, daily_df], ignore_index=True)
+
+    # Ensure the final dataset has 70 rows (7 days x 10 cities)
+    print(f"The shape of the combined daily AQI Dataframe is {combined_daily_aqi_df.shape}")
+    assert combined_daily_aqi_df.shape[0] == 70, "Final dataset does not have 70 rows as expected."
+
+    # Save the final DataFrame to CSV and return it
+    combined_daily_aqi_df.to_csv('combined_daily_aqi_df.csv', index=False)
+    return combined_daily_aqi_df
+    
 
 
 
 if __name__== "__main__": 
     create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+    create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
