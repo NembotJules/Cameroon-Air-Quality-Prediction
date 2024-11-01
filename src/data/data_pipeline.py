@@ -197,6 +197,10 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     # Save the final DataFrame to CSV and return it
     combined_daily_aqi_df.to_csv('combined_daily_aqi_df.csv', index=False)
     return combined_daily_aqi_df
+
+
+def merge_aqi_weather_df(aqi_df:pd.DataFrame, weather_df:pd.DataFrame)-> pd.DataFrame: 
+    pass
     
 
 
