@@ -1,6 +1,25 @@
 from typing import List, Dict, Optional
 import openmeteo_requests
 import requests_cache
+import pandas as pd
+import numpy as np
+import os
+import yaml
+from typing import Tuple, List, Optional
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.pipeline import FunctionTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+
+# Get the directory of the current file
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the path to the config file
+default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.yaml')
+
+with open(default_config_name, "r") as file: 
+    default_config = yaml.safe_load(file)
+
 import os
 import pandas as pd
 from retry_requests import retry
