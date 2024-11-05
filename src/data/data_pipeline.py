@@ -239,8 +239,8 @@ def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Opti
     """
 
      # Load data from the CSV files
-    aqi_df = create_aqi_df
-    weather_df = create_weather_df
+    weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
 
    # Check if DataFrames exist, are not None, and not empty
     if any(df is None or df.empty for df in [aqi_df, weather_df]):
