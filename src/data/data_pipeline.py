@@ -238,14 +238,16 @@ def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Opti
         or None if files are not found or merging fails.
     """
 
+     # Load data from the CSV files
+    aqi_df = create_aqi_df
+    weather_df = create_weather_df
+
    # Check if DataFrames exist, are not None, and not empty
     if any(df is None or df.empty for df in [aqi_df, weather_df]):
         print("Error: One or both of the DataFrames are None or empty.")
         return None
     try:
-        # Load data from the CSV files
-        aqi_df = create_aqi_df
-        weather_df = create_weather_df
+       
         
         # Merge DataFrames on 'date' and 'city'
         combined_df = pd.merge(weather_df, aqi_df, on=['date', 'city', 'latitude', 'longitude'], how='inner')
