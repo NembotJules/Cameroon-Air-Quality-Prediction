@@ -225,7 +225,7 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
 
 
 @task(log_prints=True)
-def merge_aqi_weather_df(aqi_df_path: str, weather_df_path: str) -> Optional[pd.DataFrame]:
+def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Optional[pd.DataFrame]:
     """
     Combines weather_df and aqi_df on matching date and city rows.
 
@@ -239,14 +239,14 @@ def merge_aqi_weather_df(aqi_df_path: str, weather_df_path: str) -> Optional[pd.
     """
 
     # Check if both files exist
-    if not os.path.exists(aqi_df_path) or not os.path.exists(weather_df_path):
+    if not os.path.exists(aqi_df) or not os.path.exists(weather_df):
         print("Error: One or both of the input files were not found.")
         return None
 
     try:
         # Load data from the CSV files
-        aqi_df = pd.read_csv(aqi_df_path)
-        weather_df = pd.read_csv(weather_df_path)
+        aqi_df = create_aqi_df
+        weather_df = create_weather_df
         
         # Merge DataFrames on 'date' and 'city'
         combined_df = pd.merge(weather_df, aqi_df, on=['date', 'city', 'latitude', 'longitude'], how='inner')
