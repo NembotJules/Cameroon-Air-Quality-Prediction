@@ -4,6 +4,8 @@ import requests_cache
 import pandas as pd
 import numpy as np
 import os
+from retry_requests import retry
+from prefect import flow, task
 import yaml
 from typing import Tuple, List, Optional
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -20,10 +22,7 @@ default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.y
 with open(default_config_name, "r") as file: 
     default_config = yaml.safe_load(file)
 
-import os
-import pandas as pd
-from retry_requests import retry
-from prefect import flow, task
+
 
 # Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -261,12 +260,164 @@ def merge_aqi_weather_df(aqi_df_path: str, weather_df_path: str) -> Optional[pd.
         print(f"Error occurred during merging: {e}")
         return None
 
+
+@task
+def load_data(file_path: str) -> str:
+    return pd.read_csv(file_path)
+
+@task
+def create_date_city_df(file_path: str) -> pd.DataFrame: 
+    df = load_data(file_path)
+    date_city_df = df[['date', 'city']]
+    return date_city_df
+
+@task
+def clean_data(df: pd.DataFrame) -> pd.DataFrame:
+    #drop unncessary columns(id, etc)
+
+    if 'id' in df.columns: 
+        df.drop('id', axis  = 1, inplace = True)
+
+    if 'date' in df.columns: 
+        df.drop('date', axis = 1, inplace = True)
+    #drop rows with missing values
+    df.dropna(inplace = True)
+
+    #drop duplicates
+    df.drop_duplicates(inplace = True)
+    
+    return df
+
+
+@task
+def create_categorical_and_numeric_features(df: pd.DataFrame) -> Tuple[List[str], List[str]] :
+    numeric_features = df.select_dtypes(include = ['int64', 'float64']).columns
+    categorical_features = df.select_dtypes(include = ['object']).columns
+    return numeric_features.tolist(), categorical_features.tolist()
+
+
+
+#Custom function for log transformation 
+@task
+def log_transform(X:pd.DataFrame, numeric_features: List[str]) -> pd.DataFrame:
+    X[numeric_features] = np.log1p(X[numeric_features])
+    return X
+
+@task
+def label_encode(X:pd.DataFrame, categorical_features:List[str]) -> pd.DataFrame:
+    #Create a LabelEncoder for each categorical feature
+    label_encoders = {col: LabelEncoder() for col in categorical_features}
+
+    X = X.copy()
+    for feature in categorical_features:
+        X[feature] = label_encoders[feature].fit_transform(X[feature])
+    return X
+
+@task
+def to_dataframe(X:np.ndarray, feature_names: List[str]) -> pd.DataFrame:
+    return pd.DataFrame(X, columns = feature_names)
+
+
+@task
+def preprocessor_transform(X: pd.DataFrame ,numeric_features:List[str], categorical_features: List[str]) -> pd.DataFrame:
+
+    preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', 
+         Pipeline(steps = [
+             ('log', FunctionTransformer(lambda X: log_transform(X, numeric_features))), 
+              ('scaler', StandardScaler()), 
+         ]),
+         numeric_features),
+        ('cat', FunctionTransformer(lambda X: label_encode(X, categorical_features)), categorical_features)
+    ], 
+    remainder = 'passthrough'
+    )
+
+    #Fit and transform the training data
+    X_transformed = preprocessor.fit_transform(X)
+    print(len(X_transformed))
+    X = to_dataframe(X_transformed, X.columns)
+    
+
+    return X
+
+
+@flow
+def preprocess_data(df:pd.DataFrame) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
+
+    print(f"The shape of the data at the beginning of preprocess_data {df.shape}")
+
+    if default_config["target_column"] in df.columns: 
+        X = clean_data(df).drop(default_config["target_column"], axis = 1)
+        y = clean_data(df)[default_config["target_column"]]
+
+    else: 
+        X = clean_data(df)
+        y = None
+
+    print(f"The shape of the data after removing the id and the target column {X.shape}")
+
+    
+    numeric_features, categorical_features = create_categorical_and_numeric_features(X)
+
+    X = preprocessor_transform(X, numeric_features, categorical_features)
+
+    print(f"The shape of the data after the preprocessor_transform call {X.shape}")
+
+    return X, y
+
+@task
+def save_data(df:pd.DataFrame):
+
+    X, y = preprocess_data(df)
+
+    if X.empty: 
+        print(f"Warning: X is empty. No data will be saved.")
+        return 
+
+    try: 
+    
+        
+        if y is not None: 
+            if len(X) != len(y): 
+                print(f"Warning: X and y have different lengths. No data will be saved.")
+                return 
+            y.to_csv(default_config["data"]["preprocessed_train_target_path"], index = False)
+           
+            print(" Train Target data saved successfully.")
+            print(y.shape)
+
+            X.to_csv(default_config["data"]["preprocessed_train_data_path"], index=False)
+            print("Training Feature data saved successfully.")
+            print(X.shape)
+
+        else: 
+           # X.to_csv(default_config["data"]["preprocessed_test_data_path"], index=False)
+            X.to_csv('clean_X.csv')
+            print("Test Feature data saved successfully.")
+            print(X.shape)
+
+
+
+    except Exception as e: 
+        print(f"Error saving data: {e}")
+
+
 @flow
 def etl(): 
     create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
     create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
     merge_aqi_weather_df(aqi_df_path='combined_daily_aqi_df.csv', weather_df_path='combined_daily_weather_df.csv')
+    df = load_data('daily_weather_aqi_df.csv')
+    date_city_df = create_date_city_df('daily_weather_aqi_df.csv')
+    clean_X = preprocess_data(df)
+    save_data(df)
 
+    return date_city_df, clean_X
+
+    ## I will later extend this function to make predictions using my model, and concatenate my predictions with date_city_df
+    ## for easy data access when working with the UI.
     
 
 
