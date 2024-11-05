@@ -261,13 +261,9 @@ def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Opti
         return None
 
 
-@task
-def load_data(file_path: str) -> str:
-    return pd.read_csv(file_path)
 
 @task
-def create_date_city_df(file_path: str) -> pd.DataFrame: 
-    df = load_data(file_path)
+def create_date_city_df(df: pd.DataFrame) -> pd.DataFrame: 
     date_city_df = df[['date', 'city']]
     return date_city_df
 
@@ -368,7 +364,7 @@ def preprocess_data(df:pd.DataFrame) -> Tuple[pd.DataFrame, Optional[pd.Series]]
     return X, y
 
 @task
-def save_data(df:pd.DataFrame):
+def preprocess_and_save_data(df:pd.DataFrame):
 
     X, y = preprocess_data(df)
 
@@ -406,15 +402,13 @@ def save_data(df:pd.DataFrame):
 
 @flow
 def etl(): 
-    create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
-    create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
-    merge_aqi_weather_df(aqi_df_path='combined_daily_aqi_df.csv', weather_df_path='combined_daily_weather_df.csv')
-    df = load_data('daily_weather_aqi_df.csv')
-    date_city_df = create_date_city_df('daily_weather_aqi_df.csv')
-    clean_X = preprocess_data(df)
-    save_data(df)
+    weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
+    merged_weather_aqi_df = merge_aqi_weather_df(aqi_df = aqi_df, weather_df= weather_df)
+    date_city_df = create_date_city_df(merged_weather_aqi_df)
+    preprocess_and_save_data(merged_weather_aqi_df)
 
-    return date_city_df, clean_X
+    return date_city_df, preprocess_data(merged_weather_aqi_df)
 
     ## I will later extend this function to make predictions using my model, and concatenate my predictions with date_city_df
     ## for easy data access when working with the UI.
