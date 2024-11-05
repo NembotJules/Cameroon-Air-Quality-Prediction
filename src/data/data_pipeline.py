@@ -394,7 +394,7 @@ def save_data(df:pd.DataFrame):
 
         else: 
            # X.to_csv(default_config["data"]["preprocessed_test_data_path"], index=False)
-            X.to_csv('clean_X.csv')
+            X.to_csv('clean_X.csv', index = False)
             print("Test Feature data saved successfully.")
             print(X.shape)
 
