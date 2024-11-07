@@ -236,6 +236,7 @@ def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Opti
     Returns: 
         pd.DataFrame: DataFrame containing daily weather and AQI data for all the cities,
         or None if files are not found or merging fails.
+
     """
 
      # Load data from the CSV files
