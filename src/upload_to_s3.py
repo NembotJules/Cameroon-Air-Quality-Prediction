@@ -96,7 +96,7 @@ def upload_folder_to_s3(local_folder_path, bucket_name, s3_folder_prefix):
 if __name__=="__main__": 
      # Configuration
     BUCKET_NAME = 'cameroon-air-quality-bucket'
-    RAW_DATA_FOLDER = '../data/train_test_data/raw_data/'
+    RAW_DATA_FOLDER = '../data/train_test_data/preprocessed_data/'
     S3_PREFIX = 'data/train_test_data/raw_data/'
 
     upload_folder_to_s3(RAW_DATA_FOLDER, BUCKET_NAME, S3_PREFIX)

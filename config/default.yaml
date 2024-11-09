@@ -16,15 +16,15 @@ mlflow:
 
 #Data Settings
 data: 
-    raw_train_data_path: "s3://air-quality-prediction-bucket/data/train_test_data/raw_data/train.csv"
-    raw_test_data_path: "s3://air-quality-prediction-bucket/data/train_test_data/raw_data/test.csv"
-    sample_submission_path: "s3://air-quality-prediction-bucket/data/train_test_data/sample_submission.csv"
+    raw_train_data_path: "s3://cameroon-air-quality-bucket//data/train_test_data/raw_data/train.csv"
+    raw_test_data_path: "s3://cameroon-air-quality-bucket//data/train_test_data/raw_data/test.csv"
+    sample_submission_path: "s3://cameroon-air-quality-bucket//data/train_test_data/sample_submission.csv"
     #Let's save the preprocessed data and the raw data in an S3 bucket
     
-    preprocessed_train_data_path: "s3://air-quality-prediction-bucket/data/train_test_data/preprocessed_data/train_X.csv"
-    preprocessed_train_target_path: "s3://air-quality-prediction-bucket/data/train_test_data/preprocessed_data/train_y.csv"
-    preprocessed_test_data_path: "s3://air-quality-prediction-bucket/data/train_test_data/preprocessed_data/test_X.csv"
-    preprocessed_test_target_path: "s3://air-quality-prediction-bucket/data/train_test_data/preprocessed_data/test_target.csv"
+    preprocessed_train_data_path: "s3://cameroon-air-quality-bucket//data/train_test_data/preprocessed_data/train_X.csv"
+    preprocessed_train_target_path: "s3://cameroon-air-quality-bucket//data/train_test_data/preprocessed_data/train_y.csv"
+    preprocessed_test_data_path: "s3://cameroon-air-quality-bucket//data/train_test_data/preprocessed_data/test_X.csv"
+    preprocessed_test_target_path: "s3://cameroon-air-quality-bucket//data/train_test_data/preprocessed_data/test_target.csv"
 
 #Cross-validation settings
 cv: 
