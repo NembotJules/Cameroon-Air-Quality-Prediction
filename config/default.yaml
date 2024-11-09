@@ -6,7 +6,7 @@ target_column: "pm2_5"
 #MLflow settings
 mlflow: 
     experiment_name: "air-quality-prediction"
-    tracking_uri: "http://ec2-98-82-34-113.compute-1.amazonaws.com:5000/"
+    tracking_uri: "http://ec2-44-210-87-121.compute-1.amazonaws.com:5000/"
     best_run_id : '06c745047aa74cc3abdf15de9d58704d'
     best_model_name : 'XGBR2'
     tags: 
