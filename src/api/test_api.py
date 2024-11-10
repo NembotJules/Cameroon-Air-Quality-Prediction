@@ -68,7 +68,7 @@ def test_api_prediction():
     # Send POST request to the API
     try:
         response = requests.post(
-            "http://localhost:8000/predict",
+            "http://0.0.0.0:8000/predict",
             json=payload,
             headers={'Content-Type': 'application/json'}
         )
