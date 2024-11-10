@@ -31,8 +31,7 @@ async def lifespan(app: FastAPI):
         raise
     yield
     # Shutdown
-    # Add any cleanup code here if needed
-
+    
 app = FastAPI(
     title="Cameroon Air Quality Prediction API",
     description="API for predicting air quality metrics",
@@ -51,11 +50,23 @@ class PredictionResponse(BaseModel):
 
 @app.get("/")
 async def root():
+    """Root endpoint returning API information"""
     return {"message": "Air Quality Prediction API", 
             "version": app.state.model_version}  # Updated to match the response model
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(input_data: PredictionInput):
+    """_summary_
+
+    Args:
+        input_data (PredictionInput): Input features in the format expected by send_to_model_api
+
+    Raises:
+        HTTPException: _description_
+
+    Returns:
+        Predictions and model version
+    """
     try:
         # Convert input dictionary to DataFrame
         df = pd.DataFrame(input_data.features)
@@ -73,4 +84,14 @@ async def predict(input_data: PredictionInput):
 
 @app.get("/health")
 async def health_check():
+    """Health check endpoint"""
     return {"status": "healthy", "version": app.state.model_version}  # Updated for consistency
+
+
+
+if __name__== "__main__": 
+    import uvicorn
+    uvicorn.run("app:app",
+                 host="0.0.0.0",
+                   port = 8000, 
+                   reload = True)
