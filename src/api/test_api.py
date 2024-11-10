@@ -22,15 +22,12 @@ def test_api_prediction():
         'apparent_temperature_mean': np.random.uniform(17, 30, 3),
         
         # Time features
-        'sunrise': [(datetime.now() + timedelta(minutes=np.random.randint(360, 420))).strftime('%H:%M:%S') for _ in range(3)],
-        'sunset': [(datetime.now() + timedelta(minutes=np.random.randint(1080, 1140))).strftime('%H:%M:%S') for _ in range(3)],
         'daylight_duration': np.random.uniform(10*3600, 14*3600, 3),  # in seconds
         'sunshine_duration': np.random.uniform(7*3600, 12*3600, 3),  # in seconds
         
         # Precipitation features
         'precipitation_sum': np.random.uniform(0, 50, 3),
         'rain_sum': np.random.uniform(0, 45, 3),
-        'snowfall_sum': np.random.uniform(0, 5, 3),
         'precipitation_hours': np.random.uniform(0, 24, 3),
         
         # Wind features
@@ -102,7 +99,7 @@ def print_feature_ranges():
     print("\nPrecipitation features:")
     print("Precipitation Sum: 0-50 mm")
     print("Rain Sum: 0-45 mm")
-    print("Snowfall Sum: 0-5 cm")
+    
     print("Precipitation Hours: 0-24 hours")
     
     print("\nWind features:")
