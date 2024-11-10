@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional
 import openmeteo_requests
+import requests
 import requests_cache
 import pandas as pd
 import numpy as np
@@ -402,6 +403,78 @@ def preprocess_and_save_data(df:pd.DataFrame):
         print(f"Error saving data: {e}")
 
 
+@task(log_prints=True)
+def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
+    """
+    Sends preprocessed features to the model API and gets predictions.
+    
+    Args:
+        features_df: Preprocessed features DataFrame
+        api_url: URL of the model API endpoint
+    
+    Returns:
+        List of predictions
+    """
+    try:
+        # Convert DataFrame to list of records for API request
+        features_list = features_df.to_dict(orient='records')
+        
+        # Send POST request to model API
+        response = requests.post(
+            api_url,
+            json={'features': features_list},
+            headers={'Content-Type': 'application/json'}
+        )
+        response.raise_for_status()
+        
+        # Extract predictions from response
+        predictions = response.json().get('predictions', [])
+        print(f"Successfully received {len(predictions)} predictions from model API")
+        return predictions
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling model API: {str(e)}")
+        raise
+
+
+@task(log_prints=True)
+def create_predictions_df(predictions: List[float], date_city_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Creates a DataFrame combining predictions with their corresponding dates and cities.
+    
+    Args:
+        predictions: List of model predictions
+        date_city_df: DataFrame containing dates and cities
+    
+    Returns:
+        DataFrame with predictions, dates, and cities
+    """
+    if len(predictions) != len(date_city_df):
+        raise ValueError(f"Number of predictions ({len(predictions)}) doesn't match number of rows in date_city_df ({len(date_city_df)})")
+    
+    predictions_df = date_city_df.copy()
+    predictions_df['prediction'] = predictions
+    
+    return predictions_df
+
+@task(log_prints=True)
+def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
+    """
+    Saves the predictions DataFrame to CSV.
+    
+    Args:
+        predictions_df: DataFrame containing predictions with dates and cities
+        output_path: Path where to save the CSV file
+    """
+    try:
+        predictions_df.to_csv(output_path, index=False)
+        print(f"Successfully saved predictions to {output_path}")
+    except Exception as e:
+        print(f"Error saving predictions: {str(e)}")
+        raise
+
+
+
 @flow
 def etl(): 
     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
@@ -412,11 +485,44 @@ def etl():
 
     return date_city_df, preprocess_data(merged_weather_aqi_df)
 
-    ## I will later extend this function to make predictions using my model, and concatenate my predictions with date_city_df
-    ## for easy data access when working with the UI.
+
+@flow
+def enhanced_etl(model_api_url: str, predictions_output_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Enhanced ETL flow that includes getting model predictions.
     
+    Args:
+        model_api_url: URL of the model API endpoint
+        predictions_output_path: Path to save predictions CSV
+    
+    Returns:
+        Tuple of (date_city_df, predictions_df)
+    """
+    # Run the existing ETL pipeline
+    date_city_df, (features_df, _) = etl()
+    
+    # Get predictions from model API
+    predictions = send_to_model_api(features_df, model_api_url)
+    
+    # Create predictions DataFrame
+    predictions_df = create_predictions_df(predictions, date_city_df)
+    
+    # Save predictions
+    save_predictions(predictions_df, predictions_output_path)
+    
+    return date_city_df, predictions_df
+
+
 
 
 
 if __name__== "__main__": 
-    etl()
+     # Configuration
+    MODEL_API_URL = "http://your-model-api-endpoint/predict" 
+    PREDICTIONS_OUTPUT_PATH = "predictions.csv"
+    
+    # Run the enhanced ETL pipeline
+    date_city_df, predictions_df = enhanced_etl(
+        model_api_url=MODEL_API_URL,
+        predictions_output_path=PREDICTIONS_OUTPUT_PATH
+    )
