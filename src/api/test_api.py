@@ -147,8 +147,8 @@ def test_api_prediction():
         print("\nPrediction Response:", response.json())
         
         # Print shape of the data sent
-        print(f"\nData shape: {sample_data.shape}")
-        print(f"Number of features: {len(sample_data.columns)}")
+        print(f"\nData shape: {pd.DataFrame(sample_data).shape}")
+        print(f"Number of features: {len(pd.DataFrame(sample_data).columns)}")
         
     except requests.exceptions.RequestException as e:
         print(f"Error calling API: {str(e)}")
