@@ -29,6 +29,8 @@ mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegressor: 
     """
     Train the model with input validation.
+
+    This function will be the one to trigger for automatic model retraining
     
     Args:
         X (pd.DataFrame): Training features
