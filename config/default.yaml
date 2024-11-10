@@ -128,4 +128,18 @@ models:
     random_state: 42
     verbose: 0
 
+  lgbmr:
+    objective: "regression"
+    metric: "rmse"
+    verbosity: -1
+    boosting_type: "gbdt"
+    learning_rate: 0.030962211546832760
+    n_estimators: 500
+    lambda_l1: 0.009667446568254372
+    lambda_l2: 0.04018641437301800
+    max_depth: 10
+    colsample_bytree: 0.40977129346872643
+    subsample: 0.9535797422450176
+    min_child_samples: 26
+
 #Data settings
