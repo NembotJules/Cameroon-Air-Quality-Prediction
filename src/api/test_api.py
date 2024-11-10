@@ -12,50 +12,119 @@ def test_api_prediction():
     """Test the API prediction endpoint with sample data"""
     # Create sample data with the specified features
     sample_data = pd.DataFrame({
-        # Weather features
-        'weather_code': np.random.randint(0, 100, 3),
-        'temperature_2m_max': np.random.uniform(20, 35, 3),
-        'temperature_2m_min': np.random.uniform(15, 25, 3),
-        'temperature_2m_mean': np.random.uniform(18, 30, 3),
-        'apparent_temperature_max': np.random.uniform(22, 37, 3),
-        'apparent_temperature_min': np.random.uniform(13, 23, 3),
-        'apparent_temperature_mean': np.random.uniform(17, 30, 3),
-        
-        # Time features
-        'daylight_duration': np.random.uniform(10*3600, 14*3600, 3),  # in seconds
-        'sunshine_duration': np.random.uniform(7*3600, 12*3600, 3),  # in seconds
-        
-        # Precipitation features
-        'precipitation_sum': np.random.uniform(0, 50, 3),
-        'rain_sum': np.random.uniform(0, 45, 3),
-        'precipitation_hours': np.random.uniform(0, 24, 3),
-        
-        # Wind features
-        'wind_speed_10m_max': np.random.uniform(0, 20, 3),
-        'wind_gusts_10m_max': np.random.uniform(5, 25, 3),
-        'wind_direction_10m_dominant': np.random.uniform(0, 360, 3),
-        
-        # Radiation and evaporation
-        'shortwave_radiation_sum': np.random.uniform(0, 1000, 3),
-        'et0_fao_evapotranspiration': np.random.uniform(0, 10, 3),
-        
-        # Location features
-        'city': np.random.choice(['Yaounde', 'Douala', 'Bamenda'], 3),
-        'latitude': np.random.uniform(2, 13, 3),
-        'longitude': np.random.uniform(8, 17, 3),
-        
-        # Air quality parameters
-        'carbon_monoxide': np.random.uniform(0, 10, 3),
-        'nitrogen_dioxide': np.random.uniform(0, 200, 3),
-        'sulphur_dioxide': np.random.uniform(0, 100, 3),
-        'ozone': np.random.uniform(0, 100, 3),
-        'aerosol_optical_depth': np.random.uniform(0, 1, 3),
-        'dust': np.random.uniform(0, 100, 3),
-        
-        # UV indices
-        'uv_index': np.random.uniform(0, 11, 3),
-        'uv_index_clear_sky': np.random.uniform(0, 12, 3)
-    })
+    "weather_code": [
+      1,
+      2
+    ],
+    "temperature_2m_max": [
+      25.5,
+      26.7
+    ],
+    "temperature_2m_min": [
+      18.3,
+      19.1
+    ],
+    "temperature_2m_mean": [
+      21.9,
+      22.5
+    ],
+    "apparent_temperature_max": [
+      27.0,
+      28.1
+    ],
+    "apparent_temperature_min": [
+      20.1,
+      20.8
+    ],
+    "apparent_temperature_mean": [
+      23.5,
+      24.0
+    ],
+    "daylight_duration": [
+      12.0,
+      12.2
+    ],
+    "sunshine_duration": [
+      10.5,
+      10.7
+    ],
+    "precipitation_sum": [
+      5.3,
+      4.1
+    ],
+    "rain_sum": [
+      4.5,
+      3.9
+    ],
+    "precipitation_hours": [
+      2,
+      3
+    ],
+    "wind_speed_10m_max": [
+      15.0,
+      16.2
+    ],
+    "wind_gusts_10m_max": [
+      25.0,
+      26.5
+    ],
+    "wind_direction_10m_dominant": [
+      180,
+      190
+    ],
+    "shortwave_radiation_sum": [
+      200.5,
+      205.0
+    ],
+    "et0_fao_evapotranspiration": [
+      3.1,
+      3.2
+    ],
+    "city": [
+      0,
+      1
+    ],
+    "latitude": [
+      4.0483,
+      3.848
+    ],
+    "longitude": [
+      9.7043,
+      11.5021
+    ],
+    "carbon_monoxide": [
+      0.1,
+      0.12
+    ],
+    "nitrogen_dioxide": [
+      0.05,
+      0.06
+    ],
+    "sulphur_dioxide": [
+      0.02,
+      0.03
+    ],
+    "ozone": [
+      0.03,
+      0.04
+    ],
+    "aerosol_optical_depth": [
+      0.15,
+      0.16
+    ],
+    "dust": [
+      0.1,
+      0.12
+    ],
+    "uv_index": [
+      8,
+      9
+    ],
+    "uv_index_clear_sky": [
+      10,
+      11
+    ]
+  })
     
     # Convert DataFrame to the format expected by the API
     features_list = sample_data.to_dict(orient='records')
