@@ -7,7 +7,7 @@ target_column: "pm2_5"
 mlflow: 
     experiment_name: "air-quality-prediction"
     tracking_uri: "http://3.92.207.97:5000/"
-    best_run_id : '06c745047aa74cc3abdf15de9d58704d'
+    best_run_id : '63aac35d071e4f0e8457c8cb7dd2cb23'
     best_model_name : 'XGBR2'
     tags: 
         Project: "Cameroon Air Quality Prediction"
