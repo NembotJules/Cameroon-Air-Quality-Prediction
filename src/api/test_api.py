@@ -58,7 +58,7 @@ def test_api_prediction():
     })
     
     # Convert DataFrame to the format expected by the API
-    features_list = sample_data.to_dict(orient='list')
+    features_list = sample_data.to_dict(orient='records')
     
     # Prepare the request payload
     payload = {
