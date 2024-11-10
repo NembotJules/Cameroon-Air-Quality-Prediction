@@ -25,6 +25,7 @@ data:
     preprocessed_train_target_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/train_y.csv"
     preprocessed_test_data_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/test_X.csv"
     preprocessed_test_target_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/test_target.csv"
+    preprocessed_pipeline_data_path: "s3://cameroon-air-quality-bucket/data/pipeline_output/clean_X.csv"
 
 #Cross-validation settings
 cv: 
