@@ -11,7 +11,7 @@ def test_api_health():
 def test_api_prediction():
     """Test the API prediction endpoint with sample data"""
     # Create sample data with the specified features
-    sample_data = pd.DataFrame({
+    sample_data = {
     "weather_code": [
       1,
       2
@@ -124,14 +124,14 @@ def test_api_prediction():
       10,
       11
     ]
-  })
+  }
     
     # Convert DataFrame to the format expected by the API
-    features_list = sample_data.to_dict(orient='records')
+    #features_list = sample_data.to_dict(orient='records')
     
     # Prepare the request payload
     payload = {
-        'features': features_list
+        'features': sample_data
     }
     
     # Send POST request to the API
