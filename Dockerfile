@@ -2,7 +2,7 @@
 
 #first step is to choose a base image
 
-FROM python:3.9-slim
+FROM python:3.10.12-slim
 
 # second step is to set the working directory
 
