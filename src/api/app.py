@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from contextlib import asynccontextmanager
+from pathlib import Path
+import os
 import pandas as pd
 import mlflow
 import yaml
@@ -11,9 +13,50 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load config
-with open("../../config/default.yaml", "r") as file:
-    config = yaml.safe_load(file)
+def get_config_path():
+    """
+    Get the configuration file path that works both locally and in Docker.
+    
+    Returns:
+        Path: The path to the config file
+    """
+    # First try environment variable
+    env_path = os.getenv('CONFIG_PATH')
+    if env_path and os.path.exists(env_path):
+        return env_path
+        
+    # If env variable not set or file doesn't exist, try different relative paths
+    possible_paths = [
+        # When running from src/api directory
+        Path(__file__).resolve().parent.parent.parent / "config" / "default.yaml",
+        # When running from project root
+        Path("config") / "default.yaml",
+        # When running in Docker
+        Path("/app/config/default.yaml")
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            return str(path)
+    
+    # If no config file found, raise an error with helpful message
+    raise FileNotFoundError(
+        "Could not find config/default.yaml. Tried the following locations:\n" +
+        "\n".join(f"- {p}" for p in possible_paths)
+    )
+
+# Load config using the helper function
+try:
+    config_path = get_config_path()
+    logger.info(f"Loading config from: {config_path}")
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+except FileNotFoundError as e:
+    logger.error(f"Configuration file not found: {str(e)}")
+    raise
+except Exception as e:
+    logger.error(f"Error loading configuration: {str(e)}")
+    raise
 
 # Define feature names
 FEATURE_NAMES = ['weather_code','temperature_2m_max','temperature_2m_min','temperature_2m_mean','apparent_temperature_max',
