@@ -449,12 +449,12 @@ def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
     """
     try:
         # Convert DataFrame to list of records for API request
-        features_list = features_df.to_dict(orient='records')
+        features_dict = features_df.to_dict(orient='list')
         
         # Send POST request to model API
         response = requests.post(
             api_url,
-            json={'features': features_list},
+            json={'features': features_dict},
             headers={'Content-Type': 'application/json'}
         )
         response.raise_for_status()
