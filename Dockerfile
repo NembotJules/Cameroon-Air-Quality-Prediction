@@ -11,6 +11,7 @@ WORKDIR /app
 # third step is to COPY relevant files
 
 COPY src/api  /app
+COPY config  /app
 COPY requirements.txt /app
 
 # step 4 is to install dependencies
