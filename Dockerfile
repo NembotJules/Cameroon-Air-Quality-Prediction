@@ -24,6 +24,6 @@ EXPOSE 8000
 
 # Run the code
 
-CMD [ "python3", "/app/src/apiapp.py" ]
+CMD [ "python3", "/app/src/api/app.py" ]
 
 
