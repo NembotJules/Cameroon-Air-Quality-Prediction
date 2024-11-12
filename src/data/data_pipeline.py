@@ -528,7 +528,7 @@ def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
 
 
 @flow
-def enhanced_etl(model_api_url: str, predictions_output_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def enhanced_etl(aqi_api_url: str, predictions_output_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Enhanced ETL flow that includes getting model predictions.
     
@@ -543,7 +543,7 @@ def enhanced_etl(model_api_url: str, predictions_output_path: str) -> Tuple[pd.D
     date_city_df, (features_df, _) = etl()
     
     # Get predictions from model API
-    predictions = send_to_model_api(features_df, model_api_url)
+    predictions = send_to_model_api(features_df, aqi_api_url)
     
     # Create predictions DataFrame
     predictions_df = create_predictions_df(predictions, date_city_df)
