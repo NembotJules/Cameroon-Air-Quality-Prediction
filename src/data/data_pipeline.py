@@ -559,11 +559,11 @@ def enhanced_etl(model_api_url: str, predictions_output_path: str) -> Tuple[pd.D
 
 if __name__== "__main__": 
      # Configuration
-    MODEL_API_URL = "http://localhost:8080/predict" 
+    AQI_API_URL = "http://localhost:8080/predict" 
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
     
     # Run the enhanced ETL pipeline
     date_city_df, predictions_df = enhanced_etl(
-        model_api_url=MODEL_API_URL,
+        aqi_api_url=AQI_API_URL,
         predictions_output_path=PREDICTIONS_OUTPUT_PATH
     )
