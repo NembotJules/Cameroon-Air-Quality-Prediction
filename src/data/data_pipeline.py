@@ -53,9 +53,9 @@ aqi_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
 aqi_features = ["carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "aerosol_optical_depth", "dust", "uv_index", "uv_index_clear_sky"]
 
-weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min", "apparent_temperature_max", 
-               "apparent_temperature_min", "sunrise", "sunset", "daylight_duration", "sunshine_duration",
-                 "precipitation_sum", "rain_sum", "snowfall_sum", "precipitation_hours", "wind_speed_10m_max",
+weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min", "temperature_2m_mean", "apparent_temperature_max", 
+               "apparent_temperature_min", "apparent_temperature_mean", "daylight_duration", "sunshine_duration",
+                 "precipitation_sum", "rain_sum",  "precipitation_hours", "wind_speed_10m_max",
                    "wind_gusts_10m_max", "wind_direction_10m_dominant", "shortwave_radiation_sum", "et0_fao_evapotranspiration"]
 
 @task(log_prints=True)
