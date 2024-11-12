@@ -1,4 +1,5 @@
 from typing import List, Dict, Optional
+import json
 import openmeteo_requests
 import requests
 import requests_cache
@@ -448,15 +449,30 @@ def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
         List of predictions
     """
     try:
-        # Convert DataFrame to list of records for API request
-        features_dict = features_df.to_dict(orient='list')
+        # Convert DataFrame to dictionary where each column becomes a list
+        # This maintains the exact structure expected by the API
+        features_dict = {
+            column: features_df[column].tolist()
+            for column in features_df.columns
+        }
+        
+        # Create the payload structure exactly as expected by the API
+        payload = {
+            'features': features_dict
+        }
+
+        # Print the payload for debugging
+        print("Sending payload:", json.dumps(payload, indent=2))
         
         # Send POST request to model API
         response = requests.post(
             api_url,
-            json={'features': features_dict},
+            json=payload,
             headers={'Content-Type': 'application/json'}
         )
+        
+        
+        
         response.raise_for_status()
         
         # Extract predictions from response
@@ -466,6 +482,9 @@ def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
         
     except requests.exceptions.RequestException as e:
         print(f"Error calling model API: {str(e)}")
+        # Print response content for debugging if available
+        if hasattr(e.response, 'content'):
+            print(f"Response content: {e.response.content}")
         raise
 
 
