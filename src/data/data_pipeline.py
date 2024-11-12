@@ -292,6 +292,8 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 def create_categorical_and_numeric_features(df: pd.DataFrame) -> Tuple[List[str], List[str]] :
     numeric_features = df.select_dtypes(include = ['int64', 'float64']).columns
     categorical_features = df.select_dtypes(include = ['object']).columns
+    print(f"The  numerical features are {numeric_features}")
+    print(f"The categorical features are {categorical_features}")
     return numeric_features.tolist(), categorical_features.tolist()
 
 
@@ -300,6 +302,7 @@ def create_categorical_and_numeric_features(df: pd.DataFrame) -> Tuple[List[str]
 @task
 def log_transform(X:pd.DataFrame, numeric_features: List[str]) -> pd.DataFrame:
     X[numeric_features] = np.log1p(X[numeric_features])
+    print(f"Here is X after the log transform {X.head()}")
     return X
 
 @task
@@ -310,6 +313,7 @@ def label_encode(X:pd.DataFrame, categorical_features:List[str]) -> pd.DataFrame
     X = X.copy()
     for feature in categorical_features:
         X[feature] = label_encoders[feature].fit_transform(X[feature])
+    print(f"Here is X after label encoding {X.head()}")
     return X
 
 @task
@@ -337,6 +341,7 @@ def preprocessor_transform(X: pd.DataFrame ,numeric_features:List[str], categori
     X_transformed = preprocessor.fit_transform(X)
     print(len(X_transformed))
     X = to_dataframe(X_transformed, X.columns)
+    print(f"X after the preprocessor_transform {X.head()}")
     
 
     return X
