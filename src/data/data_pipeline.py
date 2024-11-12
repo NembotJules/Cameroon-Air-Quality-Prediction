@@ -424,7 +424,7 @@ def preprocess_and_save_data(df:pd.DataFrame):
 
 
 
-@flow
+@task
 def etl(): 
     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
     aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
