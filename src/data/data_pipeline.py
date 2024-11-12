@@ -113,21 +113,20 @@ def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features:
             "weather_code": daily.Variables(0).ValuesAsNumpy(),
             "temperature_2m_max": daily.Variables(1).ValuesAsNumpy(),
             "temperature_2m_min": daily.Variables(2).ValuesAsNumpy(),
-            "apparent_temperature_max": daily.Variables(3).ValuesAsNumpy(),
-            "apparent_temperature_min": daily.Variables(4).ValuesAsNumpy(),
-            "sunrise": daily.Variables(5).ValuesAsNumpy(),
-            "sunset": daily.Variables(6).ValuesAsNumpy(),
+            "temperature_2m_mean": daily.Variables(3).ValuesAsNumpy(),
+            "apparent_temperature_max": daily.Variables(4).ValuesAsNumpy(),
+            "apparent_temperature_min": daily.Variables(5).ValuesAsNumpy(),
+            "apparent_temperature_mean": daily.Variables(6).ValuesAsNumpy(),
             "daylight_duration": daily.Variables(7).ValuesAsNumpy(),
             "sunshine_duration": daily.Variables(8).ValuesAsNumpy(),
             "precipitation_sum": daily.Variables(9).ValuesAsNumpy(),
             "rain_sum": daily.Variables(10).ValuesAsNumpy(),
-            "snowfall_sum": daily.Variables(11).ValuesAsNumpy(),
-            "precipitation_hours": daily.Variables(12).ValuesAsNumpy(),
-            "wind_speed_10m_max": daily.Variables(13).ValuesAsNumpy(),
-            "wind_gusts_10m_max": daily.Variables(14).ValuesAsNumpy(),
-            "wind_direction_10m_dominant": daily.Variables(15).ValuesAsNumpy(),
-            "shortwave_radiation_sum": daily.Variables(16).ValuesAsNumpy(),
-            "et0_fao_evapotranspiration": daily.Variables(17).ValuesAsNumpy()
+            "precipitation_hours": daily.Variables(11).ValuesAsNumpy(),
+            "wind_speed_10m_max": daily.Variables(12).ValuesAsNumpy(),
+            "wind_gusts_10m_max": daily.Variables(13).ValuesAsNumpy(),
+            "wind_direction_10m_dominant": daily.Variables(14).ValuesAsNumpy(),
+            "shortwave_radiation_sum": daily.Variables(15).ValuesAsNumpy(),
+            "et0_fao_evapotranspiration": daily.Variables(16).ValuesAsNumpy()
         }
 
         #Create a DataFrame for the current city's data and concatenate
