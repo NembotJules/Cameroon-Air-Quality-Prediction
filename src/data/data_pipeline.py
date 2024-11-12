@@ -540,7 +540,7 @@ def enhanced_etl(model_api_url: str, predictions_output_path: str) -> Tuple[pd.D
 
 if __name__== "__main__": 
      # Configuration
-    MODEL_API_URL = "http://your-model-api-endpoint/predict" 
+    MODEL_API_URL = "http://localhost:8080/predict" 
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
     
     # Run the enhanced ETL pipeline
