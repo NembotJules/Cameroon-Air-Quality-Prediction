@@ -409,7 +409,8 @@ def preprocess_and_save_data(df:pd.DataFrame):
         else: 
            # X.to_csv(default_config["data"]["preprocessed_test_data_path"], index=False)
            # X.to_csv('clean_X.csv', index = False)
-            X.to_csv(default_config["data"]["preprocessed_pipeline_data_path"], index=False)
+           # X.to_csv(default_config["data"]["preprocessed_pipeline_data_path"], index=False)
+            X.to_csv('clean_X.csv', index = False)
             preprocess_X_data = pd.read_csv(default_config["data"]["preprocessed_train_data_path"])
 
             try: 
