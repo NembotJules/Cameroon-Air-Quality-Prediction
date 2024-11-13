@@ -555,7 +555,7 @@ def etl_and_preprocess():
     X, y = preprocess_data(cleaned_df)
 
     # 7. Save preprocessed data
-    preprocess_and_save_data(X, y)
+    preprocess_and_save_data(X)
 
     return date_city_df, X
 
