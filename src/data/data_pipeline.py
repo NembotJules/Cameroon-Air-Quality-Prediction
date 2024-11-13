@@ -288,7 +288,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@task
+#@task
 def create_categorical_and_numeric_features(df: pd.DataFrame) -> Tuple[List[str], List[str]] :
     numeric_features = df.select_dtypes(include = ['int64', 'float64']).columns
     categorical_features = df.select_dtypes(include = ['object']).columns
@@ -299,13 +299,13 @@ def create_categorical_and_numeric_features(df: pd.DataFrame) -> Tuple[List[str]
 
 
 #Custom function for log transformation 
-@task
+#@task
 def log_transform(X:pd.DataFrame, numeric_features: List[str]) -> pd.DataFrame:
     X[numeric_features] = np.log1p(X[numeric_features])
     print(f"Here is X after the log transform {X.head()}")
     return X
 
-@task
+#@task
 def label_encode(X:pd.DataFrame, categorical_features:List[str]) -> pd.DataFrame:
     #Create a LabelEncoder for each categorical feature
     label_encoders = {col: LabelEncoder() for col in categorical_features}
@@ -316,12 +316,12 @@ def label_encode(X:pd.DataFrame, categorical_features:List[str]) -> pd.DataFrame
     print(f"Here is X after label encoding {X.head()}")
     return X
 
-@task
+#@task
 def to_dataframe(X:np.ndarray, feature_names: List[str]) -> pd.DataFrame:
     return pd.DataFrame(X, columns = feature_names)
 
 
-@task
+#@task
 def preprocessor_transform(X: pd.DataFrame ,numeric_features:List[str], categorical_features: List[str]) -> pd.DataFrame:
 
     preprocessor = ColumnTransformer(
@@ -342,12 +342,13 @@ def preprocessor_transform(X: pd.DataFrame ,numeric_features:List[str], categori
     print(len(X_transformed))
     X = to_dataframe(X_transformed, X.columns)
     print(f"X after the preprocessor_transform {X.head()}")
+    X.to_csv('X_after_preprocessor_transform.csv', index=False)
     
 
     return X
 
 
-@flow
+@task
 def preprocess_data(df:pd.DataFrame) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
 
     print(f"The shape of the data at the beginning of preprocess_data {df.shape}")
@@ -433,15 +434,15 @@ def preprocess_and_save_data(df:pd.DataFrame):
 
 
 
-@task
-def etl(): 
-    weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
-    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
-    merged_weather_aqi_df = merge_aqi_weather_df(aqi_df = aqi_df, weather_df= weather_df)
-    date_city_df = create_date_city_df(merged_weather_aqi_df)
-    preprocess_and_save_data(merged_weather_aqi_df)
+#*@task
+#def etl(): 
+  #  weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+ #   aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
+ #   merged_weather_aqi_df = merge_aqi_weather_df(aqi_df = aqi_df, weather_df= weather_df)
+ #   date_city_df = create_date_city_df(merged_weather_aqi_df)
+  #  preprocess_and_save_data(merged_weather_aqi_df)
 
-    return date_city_df, preprocess_data(merged_weather_aqi_df)
+   # return date_city_df, preprocess_data(merged_weather_aqi_df)
 
 
 @task(log_prints=True)
@@ -533,45 +534,51 @@ def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
         raise
 
 
+@flow
+def etl_and_preprocess():
+    # 1. Create weather_df
+    weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+
+    # 2. Create aqi_df
+    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
+
+    # 3. Merge aqi_df and weather_df
+    merged_weather_aqi_df = merge_aqi_weather_df(aqi_df=aqi_df, weather_df=weather_df)
+
+    # 4. Create date_city_df
+    date_city_df = create_date_city_df(merged_weather_aqi_df)
+
+    # 5. Clean data
+    cleaned_df = clean_data(merged_weather_aqi_df)
+
+    # 6. Preprocessor transform
+    X, y = preprocess_data(cleaned_df)
+
+    # 7. Save preprocessed data
+    preprocess_and_save_data(X, y)
+
+    return date_city_df, X
+
 
 
 @flow
-def enhanced_etl(aqi_api_url: str, predictions_output_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Enhanced ETL flow that includes getting model predictions.
-    
-    Args:
-        model_api_url: URL of the model API endpoint
-        predictions_output_path: Path to save predictions CSV
-    
-    Returns:
-        Tuple of (date_city_df, predictions_df)
-    """
-    # Run the existing ETL pipeline
-    date_city_df, (features_df, _) = etl()
-    
-    # Get predictions from model API
+def predict_and_save(aqi_api_url, predictions_output_path):
+    # 8. Send to model API
+    date_city_df, features_df = etl_and_preprocess()
     predictions = send_to_model_api(features_df, aqi_api_url)
-    
-    # Create predictions DataFrame
+
+    # 9. Create predictions
     predictions_df = create_predictions_df(predictions, date_city_df)
-    
-    # Save predictions
+
+    # 10. Save predictions
     save_predictions(predictions_df, predictions_output_path)
-    
+
     return date_city_df, predictions_df
 
 
 
-
-
-if __name__== "__main__": 
-     # Configuration
-    AQI_API_URL = "http://localhost:8080/predict" 
+if __name__ == "__main__":
+    AQI_API_URL = "http://localhost:8080/predict"
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
-    
-    # Run the enhanced ETL pipeline
-    date_city_df, predictions_df = enhanced_etl(
-        aqi_api_url=AQI_API_URL,
-        predictions_output_path=PREDICTIONS_OUTPUT_PATH
-    )
+
+    date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
