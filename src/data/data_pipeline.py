@@ -366,6 +366,7 @@ def preprocess_data(df:pd.DataFrame) -> Tuple[pd.DataFrame, Optional[pd.Series]]
     numeric_features, categorical_features = create_categorical_and_numeric_features(X)
 
     X = preprocessor_transform(X, numeric_features, categorical_features)
+    X.to_csv('X_after_preprocess.csv')
 
     print(f"The shape of the data after the preprocessor_transform call {X.shape}")
 
