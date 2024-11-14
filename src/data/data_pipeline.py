@@ -272,167 +272,151 @@ def create_date_city_df(df: pd.DataFrame) -> pd.DataFrame:
     date_city_df = df[['date', 'city']]
     return date_city_df
 
-@task
-def clean_data(df: pd.DataFrame) -> pd.DataFrame:
-    #drop unncessary columns(id, etc)
 
-    if 'id' in df.columns: 
-        df.drop('id', axis  = 1, inplace = True)
-
-    if 'date' in df.columns: 
-        df.drop('date', axis = 1, inplace = True)
-    #drop rows with missing values
-    df.dropna(inplace = True)
-
-    #drop duplicates
-    df.drop_duplicates(inplace = True)
+@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Clean the input DataFrame by removing unnecessary columns and invalid data.
+    """
+    df_cleaned = df.copy()
     
-    return df
+    # Drop unnecessary columns
+    if 'id' in df_cleaned.columns:
+        df_cleaned = df_cleaned.drop(columns=['id'])
+    
+    # Remove missing values and duplicates
+    df_cleaned = df_cleaned.dropna()
+    df_cleaned = df_cleaned.drop_duplicates()
+    
+    return df_cleaned
 
+@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+def separate_features_target(
+    df: pd.DataFrame, 
+    target_column: Optional[str]
+) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
+    """
+    Separate features and target variable if target column is provided.
+    """
+    if target_column and target_column in df.columns:
+        return df.drop(columns=[target_column]), df[target_column]
+    return df, None
 
-#@task
-def create_categorical_and_numeric_features(df: pd.DataFrame) -> Tuple[List[str], List[str]] :
-    numeric_features = df.select_dtypes(include = ['int64', 'float64']).columns
-    categorical_features = df.select_dtypes(include = ['object']).columns
-    print(f"The  numerical features are {numeric_features}")
-    print(f"The categorical features are {categorical_features}")
-    return numeric_features.tolist(), categorical_features.tolist()
+@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+def identify_feature_types(df: pd.DataFrame) -> Dict[str, List[str]]:
+    """
+    Identify numeric and categorical features in the DataFrame.
+    """
+    return {
+        'numeric': df.select_dtypes(include=['int64', 'float64']).columns.tolist(),
+        'categorical': df.select_dtypes(include=['object']).columns.tolist()
+    }
 
-
-
-#Custom function for log transformation 
-#@task
-def log_transform(X:pd.DataFrame, numeric_features: List[str]) -> pd.DataFrame:
-    X[numeric_features] = np.log1p(X[numeric_features])
-    print(f"Here is X after the log transform {X.head()}")
-    return X
-
-#@task
-def label_encode(X:pd.DataFrame, categorical_features:List[str]) -> pd.DataFrame:
-    #Create a LabelEncoder for each categorical feature
-    label_encoders = {col: LabelEncoder() for col in categorical_features}
-
-    X = X.copy()
-    for feature in categorical_features:
-        X[feature] = label_encoders[feature].fit_transform(X[feature])
-    print(f"Here is X after label encoding {X.head()}")
-    return X
-
-#@task
-def to_dataframe(X:np.ndarray, feature_names: List[str]) -> pd.DataFrame:
-    return pd.DataFrame(X, columns = feature_names)
-
-
-#@task
-def preprocessor_transform(X: pd.DataFrame ,numeric_features:List[str], categorical_features: List[str]) -> pd.DataFrame:
-
+@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+def transform_features(
+    df: pd.DataFrame,
+    feature_types: Dict[str, List[str]]
+) -> pd.DataFrame:
+    """
+    Apply transformations to features based on their types.
+    """
+    numeric_features = feature_types['numeric']
+    categorical_features = feature_types['categorical']
+    
+    def log_transform(data: pd.DataFrame) -> pd.DataFrame:
+        """Apply log transformation to numeric features."""
+        data = data.copy()
+        data[numeric_features] = np.log1p(data[numeric_features])
+        return data
+    
+    def encode_categoricals(data: pd.DataFrame) -> pd.DataFrame:
+        """Encode categorical features using LabelEncoder."""
+        data = data.copy()
+        encoders = {}
+        for feature in categorical_features:
+            encoders[feature] = LabelEncoder()
+            data[feature] = encoders[feature].fit_transform(data[feature])
+        return data
+    
     preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', 
-         Pipeline(steps = [
-             ('log', FunctionTransformer(lambda X: log_transform(X, numeric_features))), 
-              ('scaler', StandardScaler()), 
-         ]),
-         numeric_features),
-        ('cat', FunctionTransformer(lambda X: label_encode(X, categorical_features)), categorical_features)
-    ], 
-    remainder = 'passthrough'
+        transformers=[
+            ('numeric', 
+             Pipeline([
+                 ('log', FunctionTransformer(log_transform)),
+                 ('scaler', StandardScaler())
+             ]),
+             numeric_features),
+            ('categorical', 
+             FunctionTransformer(encode_categoricals),
+             categorical_features)
+        ],
+        remainder='passthrough'
+    )
+    
+    # Transform the data
+    X_transformed = preprocessor.fit_transform(df)
+    
+    # Convert to DataFrame maintaining column names
+    return pd.DataFrame(
+        X_transformed,
+        columns=numeric_features + categorical_features
     )
 
-    #Fit and transform the training data
-    X_transformed = preprocessor.fit_transform(X)
-    print(len(X_transformed))
-    X = to_dataframe(X_transformed, X.columns)
-    print(f"X after the preprocessor_transform {X.head()}")
-    X.to_csv('X_after_preprocessor_transform.csv', index=False)
-    
-
-    return X
-
-
 @task
-def preprocess_data(df:pd.DataFrame) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
-
-    print(f"The shape of the data at the beginning of preprocess_data {df.shape}")
-
-    if default_config["target_column"] in df.columns: 
-        X = clean_data(df).drop(default_config["target_column"], axis = 1)
-        y = clean_data(df)[default_config["target_column"]]
-
-    else: 
-        X = clean_data(df)
-        y = None
-
-    print(f"The shape of the data after removing the id and the target column {X.shape}")
-
+def save_processed_data(
+    X: pd.DataFrame,
+    y: Optional[pd.Series],
+    save_path: Optional[str]
+) -> None:
+    """
+    Save processed features and target data if save_path is provided.
+    """
+    if not save_path:
+        return
     
-    numeric_features, categorical_features = create_categorical_and_numeric_features(X)
-    print(f"Cateogrical variables are {categorical_features}")
-    print(f"Numerical variables are {numeric_features}")
+    try:
+        X.to_csv(save_path, index=False)
+        if y is not None:
+            target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
+            y.to_csv(target_path, index=False)
+    except Exception as e:
+        raise Exception(f"Error saving processed data: {str(e)}")
 
-    X = preprocessor_transform(X, numeric_features, categorical_features)
-    X.to_csv('X_after_preprocess.csv')
-
-    print(f"The shape of the data after the preprocessor_transform call {X.shape}")
-
-    return X, y
-
-@task
-def preprocess_and_save_data(df:pd.DataFrame):
-
-    X, y = preprocess_data(df)
-
-    if X.empty: 
-        print(f"Warning: X is empty. No data will be saved.")
-        return 
-
-    try: 
+@flow(name="Data Preprocessing Pipeline")
+def preprocess_dataset_flow(df: pd.DataFrame,target_column: Optional[str] = None,save_path: Optional[str] = None) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
+    """
+    Main workflow that orchestrates the data preprocessing pipeline.
     
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input DataFrame to preprocess
+    target_column : str, optional
+        Name of the target column if present
+    save_path : str, optional
+        Path to save the processed DataFrame
         
-        if y is not None: 
-            if len(X) != len(y): 
-                print(f"Warning: X and y have different lengths. No data will be saved.")
-                return 
-            y.to_csv(default_config["data"]["preprocessed_train_target_path"], index = False)
-           
-            print(" Train Target data saved successfully.")
-            print(y.shape)
-
-            X.to_csv(default_config["data"]["preprocessed_pipeline_data_path"], index=False)
-            preprocess_X_data = pd.read_csv(default_config["data"]["preprocessed_train_data_path"])
-
-            try: 
-                updated_X_df = pd.concat([preprocess_X_data, X], axis = 0, ignore_index=True)
-                updated_X_df.to_csv(default_config["data"]["preprocessed_train_data_path"], index = False)
-                print("Successfully added pipeline dataframe to the main data dataframe...")
-
-            except Exception as e: 
-                print(f"Error when concatening the dataframes...{str(e)}")
-
-            print("Training Feature data saved successfully.")
-            print(X.shape)
-
-        else: 
-           # X.to_csv(default_config["data"]["preprocessed_test_data_path"], index=False)
-           # X.to_csv('clean_X.csv', index = False)
-           # X.to_csv(default_config["data"]["preprocessed_pipeline_data_path"], index=False)
-            X.to_csv('clean_X.csv', index = False)
-            preprocess_X_data = pd.read_csv(default_config["data"]["preprocessed_train_data_path"])
-
-            try: 
-                updated_X_df = pd.concat([preprocess_X_data, X], axis = 0, ignore_index=True)
-                updated_X_df.to_csv(default_config["data"]["preprocessed_train_data_path"], index = False)
-                print("Successfully added pipeline dataframe to the main data dataframe...")
-                
-            except Exception as e: 
-                print(f"Error when concatening the dataframes...{str(e)}")
-           
-
-
-
-    except Exception as e: 
-        print(f"Error saving data: {e}")
-
+    Returns:
+    --------
+    Tuple[pd.DataFrame, Optional[pd.Series]]
+        Processed features (X) and target variable (y) if target_column is provided
+    """
+    # Step 1: Clean the DataFrame
+    df_cleaned = clean_dataframe(df)
+    
+    # Step 2: Separate features and target
+    X, y = separate_features_target(df_cleaned, target_column)
+    
+    # Step 3: Identify feature types
+    feature_types = identify_feature_types(X)
+    
+    # Step 4: Transform features
+    X_processed = transform_features(X, feature_types)
+    
+    # Step 5: Save processed data
+    save_processed_data(X_processed, y, save_path)
+    
+    return X_processed, y
 
 
 
@@ -447,135 +431,135 @@ def preprocess_and_save_data(df:pd.DataFrame):
    # return date_city_df, preprocess_data(merged_weather_aqi_df)
 
 
-@task(log_prints=True)
-def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
-    """
-    Sends preprocessed features to the model API and gets predictions.
+# @task(log_prints=True)
+# def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
+#     """
+#     Sends preprocessed features to the model API and gets predictions.
     
-    Args:
-        features_df: Preprocessed features DataFrame
-        api_url: URL of the model API endpoint
+#     Args:
+#         features_df: Preprocessed features DataFrame
+#         api_url: URL of the model API endpoint
     
-    Returns:
-        List of predictions
-    """
-    try:
-        # Convert DataFrame to dictionary where each column becomes a list
-        # This maintains the exact structure expected by the API
-        features_dict = {
-            column: features_df[column].tolist()
-            for column in features_df.columns
-        }
+#     Returns:
+#         List of predictions
+#     """
+#     try:
+#         # Convert DataFrame to dictionary where each column becomes a list
+#         # This maintains the exact structure expected by the API
+#         features_dict = {
+#             column: features_df[column].tolist()
+#             for column in features_df.columns
+#         }
         
-        # Create the payload structure exactly as expected by the API
-        payload = {
-            'features': features_dict
-        }
+#         # Create the payload structure exactly as expected by the API
+#         payload = {
+#             'features': features_dict
+#         }
 
-        # Print the payload for debugging
-        print("Sending payload:", json.dumps(payload, indent=2))
+#         # Print the payload for debugging
+#         print("Sending payload:", json.dumps(payload, indent=2))
         
-        # Send POST request to model API
-        response = requests.post(
-            api_url,
-            json=payload,
-            headers={'Content-Type': 'application/json'}
-        )
+#         # Send POST request to model API
+#         response = requests.post(
+#             api_url,
+#             json=payload,
+#             headers={'Content-Type': 'application/json'}
+#         )
         
         
         
-        response.raise_for_status()
+#         response.raise_for_status()
         
-        # Extract predictions from response
-        predictions = response.json().get('predictions', [])
-        print(f"Successfully received {len(predictions)} predictions from model API")
-        return predictions
+#         # Extract predictions from response
+#         predictions = response.json().get('predictions', [])
+#         print(f"Successfully received {len(predictions)} predictions from model API")
+#         return predictions
         
-    except requests.exceptions.RequestException as e:
-        print(f"Error calling model API: {str(e)}")
-        # Print response content for debugging if available
-        if hasattr(e.response, 'content'):
-            print(f"Response content: {e.response.content}")
-        raise
+#     except requests.exceptions.RequestException as e:
+#         print(f"Error calling model API: {str(e)}")
+#         # Print response content for debugging if available
+#         if hasattr(e.response, 'content'):
+#             print(f"Response content: {e.response.content}")
+#         raise
 
 
-@task(log_prints=True)
-def create_predictions_df(predictions: List[float], date_city_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Creates a DataFrame combining predictions with their corresponding dates and cities.
+# @task(log_prints=True)
+# def create_predictions_df(predictions: List[float], date_city_df: pd.DataFrame) -> pd.DataFrame:
+#     """
+#     Creates a DataFrame combining predictions with their corresponding dates and cities.
     
-    Args:
-        predictions: List of model predictions
-        date_city_df: DataFrame containing dates and cities
+#     Args:
+#         predictions: List of model predictions
+#         date_city_df: DataFrame containing dates and cities
     
-    Returns:
-        DataFrame with predictions, dates, and cities
-    """
-    if len(predictions) != len(date_city_df):
-        raise ValueError(f"Number of predictions ({len(predictions)}) doesn't match number of rows in date_city_df ({len(date_city_df)})")
+#     Returns:
+#         DataFrame with predictions, dates, and cities
+#     """
+#     if len(predictions) != len(date_city_df):
+#         raise ValueError(f"Number of predictions ({len(predictions)}) doesn't match number of rows in date_city_df ({len(date_city_df)})")
     
-    predictions_df = date_city_df.copy()
-    predictions_df['prediction'] = predictions
+#     predictions_df = date_city_df.copy()
+#     predictions_df['prediction'] = predictions
     
-    return predictions_df
+#     return predictions_df
 
-@task(log_prints=True)
-def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
-    """
-    Saves the predictions DataFrame to CSV.
+# @task(log_prints=True)
+# def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
+#     """
+#     Saves the predictions DataFrame to CSV.
     
-    Args:
-        predictions_df: DataFrame containing predictions with dates and cities
-        output_path: Path where to save the CSV file
-    """
-    try:
-        predictions_df.to_csv(output_path, index=False)
-        print(f"Successfully saved predictions to {output_path}")
-    except Exception as e:
-        print(f"Error saving predictions: {str(e)}")
-        raise
+#     Args:
+#         predictions_df: DataFrame containing predictions with dates and cities
+#         output_path: Path where to save the CSV file
+#     """
+#     try:
+#         predictions_df.to_csv(output_path, index=False)
+#         print(f"Successfully saved predictions to {output_path}")
+#     except Exception as e:
+#         print(f"Error saving predictions: {str(e)}")
+#         raise
 
 
-@flow
-def etl_and_preprocess():
-    # 1. Create weather_df
-    weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
+# @flow
+# def etl_and_preprocess():
+#     # 1. Create weather_df
+#     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
 
-    # 2. Create aqi_df
-    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features, upstream_tasks=weather_df)
+#     # 2. Create aqi_df
+#     aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features, upstream_tasks=weather_df)
 
-    # 3. Merge aqi_df and weather_df
-    merged_weather_aqi_df = merge_aqi_weather_df(aqi_df=aqi_df, weather_df=weather_df, upstream_tasks=aqi_df)
+#     # 3. Merge aqi_df and weather_df
+#     merged_weather_aqi_df = merge_aqi_weather_df(aqi_df=aqi_df, weather_df=weather_df, upstream_tasks=aqi_df)
 
-    # 4. Create date_city_df
-    date_city_df = create_date_city_df(merged_weather_aqi_df, upstream_tasks=merge_aqi_weather_df)
+#     # 4. Create date_city_df
+#     date_city_df = create_date_city_df(merged_weather_aqi_df, upstream_tasks=merge_aqi_weather_df)
 
-    # 5. Clean data
-    cleaned_df = clean_data(merged_weather_aqi_df, upstream_tasks=date_city_df)
+#     # 5. Clean data
+#     cleaned_df = clean_data(merged_weather_aqi_df, upstream_tasks=date_city_df)
 
-    # 6. Preprocessor transform
-    X, y = preprocess_data(cleaned_df, upstream_tasks=cleaned_df)
+#     # 6. Preprocessor transform
+#     X, y = preprocess_data(cleaned_df, upstream_tasks=cleaned_df)
 
-    # 7. Save preprocessed data
-    preprocess_and_save_data(X)
+#     # 7. Save preprocessed data
+#     preprocess_and_save_data(X)
 
-    return date_city_df, X
+#     return date_city_df, X
 
 
 
-@flow
-def predict_and_save(aqi_api_url, predictions_output_path):
-    # 8. Send to model API
-    date_city_df, features_df = etl_and_preprocess()
-    predictions = send_to_model_api(features_df, aqi_api_url)
+# @flow
+# def predict_and_save(aqi_api_url, predictions_output_path):
+#     # 8. Send to model API
+#     date_city_df, features_df = etl_and_preprocess()
+#     predictions = send_to_model_api(features_df, aqi_api_url)
 
-    # 9. Create predictions
-    predictions_df = create_predictions_df(predictions, date_city_df)
+#     # 9. Create predictions
+#     predictions_df = create_predictions_df(predictions, date_city_df)
 
-    # 10. Save predictions
-    save_predictions(predictions_df, predictions_output_path)
+#     # 10. Save predictions
+#     save_predictions(predictions_df, predictions_output_path)
 
-    return date_city_df, predictions_df
+#     return date_city_df, predictions_df
 
 
 
@@ -583,4 +567,14 @@ if __name__ == "__main__":
     AQI_API_URL = "http://localhost:8080/predict"
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
 
-    date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
+    # date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
+
+    weather_df = create_weather_df()
+    aqi_df = create_aqi_df()
+    merged_df = merge_aqi_weather_df()
+     # Run the workflow
+    X_processed, y = preprocess_dataset_flow(
+        merged_df,
+       # target_column='target',
+        save_path='processed_data.csv'
+    )
