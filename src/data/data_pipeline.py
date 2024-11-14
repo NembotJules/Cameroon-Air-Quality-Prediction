@@ -8,6 +8,8 @@ import numpy as np
 import os
 from retry_requests import retry
 from prefect import flow, task
+from prefect.tasks import task_input_hash
+from datetime import timedelta
 import yaml
 from typing import Tuple, List, Optional
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -540,19 +542,19 @@ def etl_and_preprocess():
     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
 
     # 2. Create aqi_df
-    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
+    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features, upstream_tasks=weather_df)
 
     # 3. Merge aqi_df and weather_df
-    merged_weather_aqi_df = merge_aqi_weather_df(aqi_df=aqi_df, weather_df=weather_df)
+    merged_weather_aqi_df = merge_aqi_weather_df(aqi_df=aqi_df, weather_df=weather_df, upstream_tasks=aqi_df)
 
     # 4. Create date_city_df
-    date_city_df = create_date_city_df(merged_weather_aqi_df)
+    date_city_df = create_date_city_df(merged_weather_aqi_df, upstream_tasks=merge_aqi_weather_df)
 
     # 5. Clean data
-    cleaned_df = clean_data(merged_weather_aqi_df)
+    cleaned_df = clean_data(merged_weather_aqi_df, upstream_tasks=date_city_df)
 
     # 6. Preprocessor transform
-    X, y = preprocess_data(cleaned_df)
+    X, y = preprocess_data(cleaned_df, upstream_tasks=cleaned_df)
 
     # 7. Save preprocessed data
     preprocess_and_save_data(X)
