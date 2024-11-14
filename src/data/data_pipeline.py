@@ -570,7 +570,7 @@ if __name__ == "__main__":
     # date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
 
     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
-    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features, upstream_tasks=weather_df)
+    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
     merged_df = merge_aqi_weather_df(weather_df=weather_df, aqi_df=aqi_df)
      # Run the workflow
     X_processed, y = preprocess_dataset_flow(
