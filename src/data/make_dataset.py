@@ -163,7 +163,7 @@ def preprocess_dataset_flow(
     print("\nSaving processed data...")
     X_processed.to_csv('processed_features.csv', index=False)
     if y is not None:
-        y.to_csv('target.csv', index=False)
+        y.to_csv('train_target.csv', index=False)
     
     print("\nPreprocessing pipeline completed successfully!")
     return X_processed, y
@@ -172,7 +172,7 @@ def preprocess_dataset_flow(
 
 def save_data(df:pd.DataFrame, feature_save_path: str, target_save_path: str):
 
-    X, y = preprocess_dataset_flow(df)
+    X, y = preprocess_dataset_flow(df, default_config["target_column"])
 
     if X.empty: 
         print(f"Warning: X is empty. No data will be saved.")
