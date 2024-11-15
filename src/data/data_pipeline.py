@@ -362,25 +362,25 @@ def transform_features(
         columns=numeric_features + categorical_features
     )
 
-@task
-def save_processed_data(
-    X: pd.DataFrame,
-    y: Optional[pd.Series],
-    save_path: Optional[str]
-) -> None:
-    """
-    Save processed features and target data if save_path is provided.
-    """
-    if not save_path:
-        return
+# @task
+# def save_processed_data(
+#     X: pd.DataFrame,
+#     y: Optional[pd.Series],
+#     save_path: Optional[str]
+# ) -> None:
+#     """
+#     Save processed features and target data if save_path is provided.
+#     """
+#     if not save_path:
+#         return
     
-    try:
-        X.to_csv(save_path, index=False)
-        if y is not None:
-            target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
-            y.to_csv(target_path, index=False)
-    except Exception as e:
-        raise Exception(f"Error saving processed data: {str(e)}")
+#     try:
+#         X.to_csv(save_path, index=False)
+#         if y is not None:
+#             target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
+#             y.to_csv(target_path, index=False)
+#     except Exception as e:
+#         raise Exception(f"Error saving processed data: {str(e)}")
 
 @flow(name="Data Preprocessing Pipeline")
 def preprocess_dataset_flow(df: pd.DataFrame,target_column: Optional[str] = None,save_path: Optional[str] = None) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
@@ -414,7 +414,7 @@ def preprocess_dataset_flow(df: pd.DataFrame,target_column: Optional[str] = None
     X_processed = transform_features(X, feature_types)
     
     # Step 5: Save processed data
-    save_processed_data(X_processed, y, save_path)
+    # save_processed_data(X_processed, y, save_path)
     
     return X_processed, y
 
