@@ -212,7 +212,7 @@ if __name__ == "__main__":
 
     df = load_data(default_config["data"]["raw_train_data_path"])
     test_data = load_data(default_config["data"]["raw_test_data_path"])
-    save_data(df, default_config["data"]["preprocessed_train_data_path"], default_config["data"]["preprocessed_train_data_path"]) 
+    save_data(df, default_config["data"]["preprocessed_train_data_path"], default_config["data"]["preprocessed_train_target_path"]) 
     save_data(test_data, default_config["data"]["preprocessed_test_data_path"], default_config["data"]["preprocessed_test_data_path"]) 
 
 
