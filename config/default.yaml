@@ -1,148 +1,129 @@
-#General settings
-random_state: 42
-n_jobs: -1
-target_column: "pm2_5"
-
-#MLflow settings
-mlflow: 
-    experiment_name: "air-quality-prediction"
-    tracking_uri: "http://3.92.207.97:5000/"
-    best_run_id : '63aac35d071e4f0e8457c8cb7dd2cb23'
-    best_model_name : 'XGBR2'
-    tags: 
-        Project: "Cameroon Air Quality Prediction"
-        Team: "MaxTheKing"
-        MLflow Experiment: "air-quality-prediction"
-
-#Data Settings
-data: 
-    raw_train_data_path: "s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/train.csv"
-    raw_test_data_path: "s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/test.csv"
-    sample_submission_path: "s3://cameroon-air-quality-bucket/data/train_test_data/sample_submission.csv"
-    #Let's save the preprocessed data and the raw data in an S3 bucket
-    
-    preprocessed_train_data_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/train_X.csv"
-    preprocessed_train_target_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/train_y.csv"
-    preprocessed_test_data_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/test_X.csv"
-    preprocessed_test_target_path: "s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/test_y.csv"
-    preprocessed_pipeline_features_data_path: "s3://cameroon-air-quality-bucket/data/pipeline_output/X_pipeline_result.csv"
-    preprocessed_pipeline_target_path: "s3://cameroon-air-quality-bucket/data/pipeline_output/y_pipeline.csv"
-    #preprocessed_pipeline_data_path: src/data/clean_X.csv
-
-#Cross-validation settings
-cv: 
+cv:
   n_splits: 10
-  shuffle: true
   random_state: 42
+  shuffle: true
+data:
+  preprocessed_pipeline_features_data_path: s3://cameroon-air-quality-bucket/data/pipeline_output/X_pipeline_result.csv
+  preprocessed_pipeline_target_path: s3://cameroon-air-quality-bucket/data/pipeline_output/y_pipeline.csv
+  preprocessed_test_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/test_X.csv
+  preprocessed_test_target_path: s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/test_y.csv
+  preprocessed_train_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/train_X.csv
+  preprocessed_train_target_path: s3://cameroon-air-quality-bucket/data/train_test_data/preprocessed_data/train_y.csv
+  raw_test_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/test.csv
+  raw_train_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/train.csv
+  sample_submission_path: s3://cameroon-air-quality-bucket/data/train_test_data/sample_submission.csv
 
-#Model parameters
+mlflow:
+  best_model_name: XGBR2
+  best_run_id: 472309fab09a4652a8b38fbd7cc9f564
+  experiment_name: air-quality-prediction
+  tags:
+    MLflow Experiment: air-quality-prediction
+    Project: Cameroon Air Quality Prediction
+    Team: MaxTheKing
+  tracking_uri: http://3.92.207.97:5000/
+  
 models:
-  xgbr:
-    max_depth: 12
-    learning_rate: 0.03901791174896904
-    n_estimators: 890
-    min_child_weight: 10
-    subsample: 0.6548229230133954
-    colsample_bytree: 0.9970536771243924
-    reg_alpha: 0.00008440168345703873
-    reg_lambda: 0.00001153361918282702
-    verbosity: 0
-
-  xgbr1:
-    n_estimators: 1312
-    learning_rate: 0.018279520260162645
-    gamma: 0.0024196354156454324
-    reg_alpha: 0.9025931173755949
-    reg_lambda: 0.06835667255875388
-    max_depth: 5
-    min_child_weight: 5
-    subsample: 0.883274050086088
-    colsample_bytree: 0.6579828557036317
-    verbosity: 0
-
   catboost:
-    iterations: 1000
-    learning_rate: 0.025
-    depth: 8
-    l2_leaf_reg: 3.0
-    random_strength: 1.0
     bagging_temperature: 1.0
     border_count: 254
-    verbose: False
-    task_type: "CPU"
-
-  randomforest:
-    n_estimators: 500
-    max_depth: 15
-    min_samples_split: 5
-    min_samples_leaf: 2
-    max_features: "sqrt"
-    bootstrap: True
-    n_jobs: -1
-    random_state: 42
-    verbose: 0
-
+    depth: 8
+    iterations: 1000
+    l2_leaf_reg: 3.0
+    learning_rate: 0.025
+    random_strength: 1.0
+    task_type: CPU
+    verbose: false
   elasticnet:
     alpha: 0.001
     l1_ratio: 0.5
     max_iter: 1000
+    random_state: 42
+    selection: cyclic
     tol: 0.0001
-    selection: "cyclic"
-    random_state: 42
-
-  svr:
-    kernel: "rbf"
-    C: 1.0
-    epsilon: 0.1
-    gamma: "scale"
-    tol: 0.001
-    max_iter: -1
-    verbose: False
-
-  knn:
-    n_neighbors: 5
-    weights: "uniform"
-    algorithm: "auto"
-    leaf_size: 30
-    p: 2  # Minkowski distance power parameter
-    n_jobs: -1
-
-  mlp:
-    hidden_layer_sizes: [100, 50]
-    activation: "relu"
-    solver: "adam"
-    alpha: 0.0001
-    batch_size: "auto"
-    learning_rate: "adaptive"
-    learning_rate_init: 0.001
-    max_iter: 200
-    shuffle: True
-    random_state: 42
-    verbose: False
-
   gradientboost:
-    n_estimators: 100
     learning_rate: 0.1
     max_depth: 3
-    min_samples_split: 2
+    max_features: sqrt
     min_samples_leaf: 1
+    min_samples_split: 2
+    n_estimators: 100
+    random_state: 42
     subsample: 1.0
-    max_features: "sqrt"
+    verbose: 0
+  knn:
+    algorithm: auto
+    leaf_size: 30
+    n_jobs: -1
+    n_neighbors: 5
+    p: 2
+    weights: uniform
+  lgbmr:
+    boosting_type: gbdt
+    colsample_bytree: 0.4097712934687264
+    lambda_l1: 0.009667446568254372
+    lambda_l2: 0.040186414373018
+    learning_rate: 0.03096221154683276
+    max_depth: 10
+    metric: rmse
+    min_child_samples: 26
+    n_estimators: 500
+    objective: regression
+    subsample: 0.9535797422450176
+    verbosity: -1
+  mlp:
+    activation: relu
+    alpha: 0.0001
+    batch_size: auto
+    hidden_layer_sizes:
+    - 100
+    - 50
+    learning_rate: adaptive
+    learning_rate_init: 0.001
+    max_iter: 200
+    random_state: 42
+    shuffle: true
+    solver: adam
+    verbose: false
+  randomforest:
+    bootstrap: true
+    max_depth: 15
+    max_features: sqrt
+    min_samples_leaf: 2
+    min_samples_split: 5
+    n_estimators: 500
+    n_jobs: -1
     random_state: 42
     verbose: 0
-
-  lgbmr:
-    objective: "regression"
-    metric: "rmse"
-    verbosity: -1
-    boosting_type: "gbdt"
-    learning_rate: 0.030962211546832760
-    n_estimators: 500
-    lambda_l1: 0.009667446568254372
-    lambda_l2: 0.04018641437301800
-    max_depth: 10
-    colsample_bytree: 0.40977129346872643
-    subsample: 0.9535797422450176
-    min_child_samples: 26
-
-#Data settings
+  svr:
+    C: 1.0
+    epsilon: 0.1
+    gamma: scale
+    kernel: rbf
+    max_iter: -1
+    tol: 0.001
+    verbose: false
+  xgbr:
+    colsample_bytree: 0.9970536771243924
+    learning_rate: 0.03901791174896904
+    max_depth: 12
+    min_child_weight: 10
+    n_estimators: 890
+    reg_alpha: 8.440168345703873e-05
+    reg_lambda: 1.153361918282702e-05
+    subsample: 0.6548229230133954
+    verbosity: 0
+  xgbr1:
+    colsample_bytree: 0.6579828557036317
+    gamma: 0.0024196354156454324
+    learning_rate: 0.018279520260162645
+    max_depth: 5
+    min_child_weight: 5
+    n_estimators: 1312
+    reg_alpha: 0.9025931173755949
+    reg_lambda: 0.06835667255875388
+    subsample: 0.883274050086088
+    verbosity: 0
+n_jobs: -1
+random_state: 42
+target_column: pm2_5
