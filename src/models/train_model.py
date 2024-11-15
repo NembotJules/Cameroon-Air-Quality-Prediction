@@ -96,9 +96,9 @@ if __name__ == "__main__":
         X = pd.read_csv(default_config["data"]["preprocessed_train_data_path"])
         y = pd.read_csv(default_config["data"]["preprocessed_train_target_path"])
         test_data = pd.read_csv(default_config["data"]["preprocessed_test_data_path"])
-        test_target = pd.read_csv(default_config["data"]["preprocessed_test_target_path"])
+        test_y = pd.read_csv(default_config["data"]["preprocessed_test_target_path"])
         model = train_model(X, y)
-        train_rmse, test_rmse =  evaluate_model(X, model, test_data, y, test_target)  
+        train_rmse, test_rmse =  evaluate_model(X, model, test_data, y, test_y)  
 
         mlflow.log_metric('train_rmse', train_rmse)
         mlflow.log_metric('test_rmse', test_rmse)
