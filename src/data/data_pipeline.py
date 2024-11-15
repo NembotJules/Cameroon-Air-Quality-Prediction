@@ -273,7 +273,7 @@ def create_date_city_df(df: pd.DataFrame) -> pd.DataFrame:
     return date_city_df
 
 
-@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+@task
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     Clean the input DataFrame by removing unnecessary columns and invalid data.
@@ -302,7 +302,7 @@ def separate_features_target(
         return df.drop(columns=[target_column]), df[target_column]
     return df, None
 
-@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+@task
 def identify_feature_types(df: pd.DataFrame) -> Dict[str, List[str]]:
     """
     Identify numeric and categorical features in the DataFrame.
@@ -312,7 +312,7 @@ def identify_feature_types(df: pd.DataFrame) -> Dict[str, List[str]]:
         'categorical': df.select_dtypes(include=['object']).columns.tolist()
     }
 
-@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+@task
 def transform_features(
     df: pd.DataFrame,
     feature_types: Dict[str, List[str]]
@@ -418,6 +418,9 @@ def preprocess_dataset_flow(df: pd.DataFrame,target_column: Optional[str] = None
     
     # Step 5: Save processed data
     # save_processed_data(X_processed, y, save_path)
+
+    X_processed.to_csv('X.csv', index = False)
+    print(X_processed.shape)
     
     return X_processed, y
 
