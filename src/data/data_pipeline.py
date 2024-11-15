@@ -432,7 +432,7 @@ def save_processed_data(
                 axis=0,
                 ignore_index=True
             )
-            historical_features.to_csv(historical_path, index=False)
+            historical_features.to_csv('historical_features.csv', index=False)
         except Exception as e:
             raise Exception(
                 "Failed to concatenate current and historical features: "
@@ -447,112 +447,96 @@ def save_processed_data(
     except Exception as e:
         raise Exception(f"Failed to save processed data: {str(e)}")
 
-# @task(log_prints=True)
-# def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
-#     """
-#     Sends preprocessed features to the model API and gets predictions.
+@task(log_prints=True)
+def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
+    """
+    Sends preprocessed features to the model API and gets predictions.
     
-#     Args:
-#         features_df: Preprocessed features DataFrame
-#         api_url: URL of the model API endpoint
+    Args:
+        features_df: Preprocessed features DataFrame
+        api_url: URL of the model API endpoint
     
-#     Returns:
-#         List of predictions
-#     """
-#     try:
-#         # Convert DataFrame to dictionary where each column becomes a list
-#         # This maintains the exact structure expected by the API
-#         features_dict = {
-#             column: features_df[column].tolist()
-#             for column in features_df.columns
-#         }
+    Returns:
+        List of predictions
+    """
+    try:
+        # Convert DataFrame to dictionary where each column becomes a list
+        # This maintains the exact structure expected by the API
+        features_dict = {
+            column: features_df[column].tolist()
+            for column in features_df.columns
+        }
         
-#         # Create the payload structure exactly as expected by the API
-#         payload = {
-#             'features': features_dict
-#         }
+        # Create the payload structure exactly as expected by the API
+        payload = {
+            'features': features_dict
+        }
 
-#         # Print the payload for debugging
-#         print("Sending payload:", json.dumps(payload, indent=2))
+        # Print the payload for debugging
+        print("Sending payload:", json.dumps(payload, indent=2))
         
-#         # Send POST request to model API
-#         response = requests.post(
-#             api_url,
-#             json=payload,
-#             headers={'Content-Type': 'application/json'}
-#         )
+        # Send POST request to model API
+        response = requests.post(
+            api_url,
+            json=payload,
+            headers={'Content-Type': 'application/json'}
+        )
         
         
         
-#         response.raise_for_status()
+        response.raise_for_status()
         
-#         # Extract predictions from response
-#         predictions = response.json().get('predictions', [])
-#         print(f"Successfully received {len(predictions)} predictions from model API")
-#         return predictions
+        # Extract predictions from response
+        predictions = response.json().get('predictions', [])
+        print(f"Successfully received {len(predictions)} predictions from model API")
+        return predictions
         
-#     except requests.exceptions.RequestException as e:
-#         print(f"Error calling model API: {str(e)}")
-#         # Print response content for debugging if available
-#         if hasattr(e.response, 'content'):
-#             print(f"Response content: {e.response.content}")
-#         raise
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling model API: {str(e)}")
+        # Print response content for debugging if available
+        if hasattr(e.response, 'content'):
+            print(f"Response content: {e.response.content}")
+        raise
 
 
-# @task(log_prints=True)
-# def create_predictions_df(predictions: List[float], date_city_df: pd.DataFrame) -> pd.DataFrame:
-#     """
-#     Creates a DataFrame combining predictions with their corresponding dates and cities.
+@task(log_prints=True)
+def create_predictions_df(predictions: List[float], date_city_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Creates a DataFrame combining predictions with their corresponding dates and cities.
     
-#     Args:
-#         predictions: List of model predictions
-#         date_city_df: DataFrame containing dates and cities
+    Args:
+        predictions: List of model predictions
+        date_city_df: DataFrame containing dates and cities
     
-#     Returns:
-#         DataFrame with predictions, dates, and cities
-#     """
-#     if len(predictions) != len(date_city_df):
-#         raise ValueError(f"Number of predictions ({len(predictions)}) doesn't match number of rows in date_city_df ({len(date_city_df)})")
+    Returns:
+        DataFrame with predictions, dates, and cities
+    """
+    if len(predictions) != len(date_city_df):
+        raise ValueError(f"Number of predictions ({len(predictions)}) doesn't match number of rows in date_city_df ({len(date_city_df)})")
     
-#     predictions_df = date_city_df.copy()
-#     predictions_df['prediction'] = predictions
+    predictions_df = date_city_df.copy()
+    predictions_df['prediction'] = predictions
     
-#     return predictions_df
+    return predictions_df
 
-# @task(log_prints=True)
-# def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
-#     """
-#     Saves the predictions DataFrame to CSV.
+@task(log_prints=True)
+def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
+    """
+    Saves the predictions DataFrame to CSV.
     
-#     Args:
-#         predictions_df: DataFrame containing predictions with dates and cities
-#         output_path: Path where to save the CSV file
-#     """
-#     try:
-#         predictions_df.to_csv(output_path, index=False)
-#         print(f"Successfully saved predictions to {output_path}")
-#     except Exception as e:
-#         print(f"Error saving predictions: {str(e)}")
-#         raise
+    Args:
+        predictions_df: DataFrame containing predictions with dates and cities
+        output_path: Path where to save the CSV file
+    """
+    try:
+        predictions_df.to_csv(output_path, index=False)
+        print(f"Successfully saved predictions to {output_path}")
+    except Exception as e:
+        print(f"Error saving predictions: {str(e)}")
+        raise
 
 
 
-
-
-
-# @flow
-# def predict_and_save(aqi_api_url, predictions_output_path):
-#     # 8. Send to model API
-#     date_city_df, features_df = etl_and_preprocess()
-#     predictions = send_to_model_api(features_df, aqi_api_url)
-
-#     # 9. Create predictions
-#     predictions_df = create_predictions_df(predictions, date_city_df)
-
-#     # 10. Save predictions
-#     save_predictions(predictions_df, predictions_output_path)
-
-#     return date_city_df, predictions_df
 
 
 
@@ -565,10 +549,16 @@ if __name__ == "__main__":
     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
     aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
     merged_df = merge_aqi_weather_df(weather_df=weather_df, aqi_df=aqi_df)
+    date_city_df = create_date_city_df(merged_df)
      # Run the workflow
     X_processed, y = preprocess_dataset_flow(
         merged_df,
        # target_column='target',
     )
 
-    save_processed_data(X_processed, y, save_path='.')
+    save_processed_data(X_processed, y, save_path='/home/maxtheking/Desktop/Cameroon-Air-Quality-Prediction/src/data/clean_X.csv')
+    predictions = send_to_model_api(X_processed, AQI_API_URL)
+    predictions_df = create_predictions_df(predictions, date_city_df=date_city_df)
+    save_predictions(predictions_df, PREDICTIONS_OUTPUT_PATH)
+
+
