@@ -685,7 +685,7 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
     """
     try:
 
-        # I also want to saved the complete dataframe
+        # I also want to saved the complete prediction dataframe
         predictions_df.to_csv(default_config["data"]["prediction_dataframe_path"], index= False)
         # Ensure date column is datetime type
         predictions_df['date'] = pd.to_datetime(predictions_df['date'])
