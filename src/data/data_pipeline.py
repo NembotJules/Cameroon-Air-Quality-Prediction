@@ -697,7 +697,7 @@ if __name__ == "__main__":
        # target_column='target',
     )
 
-    save_processed_data(X_processed, y, save_path= default_config["data"]["preprocessed_pipeline_data_path"])
+    save_processed_data(X_processed, y, save_path= default_config["data"]["preprocessed_pipeline_features_data_path"])
     predictions = send_to_model_api(X_processed, AQI_API_URL)
     predictions_df = create_predictions_df(predictions, date_city_df=date_city_df)
     save_predictions(predictions_df, PREDICTIONS_OUTPUT_PATH)
