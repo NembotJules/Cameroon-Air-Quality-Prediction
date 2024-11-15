@@ -16,26 +16,44 @@ def update_config_file(config_path: str, new_run_id: str, test_rmse: float,
         config_path (str): Path to the config file
         new_run_id (str): MLflow run ID of the new model
         test_rmse (float): RMSE of the new model
-        current_best_rmse (float): RMSE of the current best model (optional)
+        current_best_rmse (float): RMSE of the current best model
     """
-
-    # Yes test_rmse > current_best_rmse because they are negative value
-    # If test_rmse and current_best_rmse were positive then it should be the inverse
-    if test_rmse > current_best_rmse:
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-            
-        # Update the best_run_id
-        config['mlflow']['best_run_id'] = new_run_id
-        
-        # Save the updated config
-        with open(config_path, 'w') as file:
-            yaml.dump(config, file, default_flow_style=False)
-            
-        print(f"Config updated with new best run ID: {new_run_id}")
-        print(f"New best RMSE: {test_rmse} (previous: {current_best_rmse})")
+    print("\nModel Comparison:")
+    print(f"Current best RMSE: {current_best_rmse}")
+    print(f"New model RMSE: {test_rmse}")
+    
+    # Check if the new model is better
+    if current_best_rmse == float('inf'):
+        print("No previous best model found or error retrieving previous RMSE.")
+        should_update = True
     else:
-        print(f"Current model (RMSE: {test_rmse}) did not improve upon best model (RMSE: {current_best_rmse})")
+        improvement = abs(current_best_rmse) - abs(test_rmse)
+        print(f"Improvement in RMSE: {improvement}")
+        #because test_rmse and current_best_rmse are both negative values...
+        should_update = test_rmse > current_best_rmse
+    
+    if should_update:
+        try:
+            with open(config_path, 'r') as file:
+                config = yaml.safe_load(file)
+            
+            # Update the best_run_id
+            old_run_id = config['mlflow']['best_run_id']
+            config['mlflow']['best_run_id'] = new_run_id
+            
+            # Save the updated config
+            with open(config_path, 'w') as file:
+                yaml.dump(config, file, default_flow_style=False)
+                
+            print(f"\nConfig updated successfully:")
+            print(f"Old run ID: {old_run_id}")
+            print(f"New run ID: {new_run_id}")
+            print(f"New best RMSE: {test_rmse}")
+            
+        except Exception as e:
+            print(f"Error updating config file: {str(e)}")
+    else:
+        print("\nNo update needed - current model did not improve upon best model")
 
 
 # Get the directory of the current file
@@ -115,7 +133,6 @@ def evaluate_model(X: pd.DataFrame, model: xgb.XGBRegressor,
   
     return train_rmse, test_rmse
 
-
 def get_current_best_rmse() -> float:
     """
     Get the RMSE of the current best model from MLflow.
@@ -124,11 +141,31 @@ def get_current_best_rmse() -> float:
         float: RMSE of the current best model, or inf if no previous model exists
     """
     try:
+        # Get the run
         run = mlflow.get_run(best_run_id)
-        return run.data.metrics.get('test_rmse', float('inf'))
-    except:
+        
+        # Debug prints
+        print(f"Retrieved run with ID: {best_run_id}")
+        print("Available metrics:", run.data.metrics)
+        
+        # Check if metrics exist
+        if not run.data.metrics:
+            print("No metrics found in the run")
+            return float('inf')
+            
+        # Try to get the test_rmse
+        test_rmse = run.data.metrics.get('test_rmse')
+        
+        if test_rmse is None:
+            print("test_rmse not found in metrics")
+            return float('inf')
+            
+        print(f"Found test_rmse: {test_rmse}")
+        return float(test_rmse)
+        
+    except Exception as e:
+        print(f"Error retrieving best RMSE: {str(e)}")
         return float('inf')
-
 
 if __name__ == "__main__": 
     with mlflow.start_run() as run:
