@@ -572,7 +572,12 @@ def save_processed_data(
                 axis=0,
                 ignore_index=True
             )
+
+            if 'Unnamed: 0': 
+                historical_target_df.drop('Unnamed: 0', axis = 1, inplace= True)
+                
             historical_target_df.to_csv(historical_target_path, index=False)
+            
         except Exception as e:
             raise Exception(
                 "Failed to concatenate current and historical features: "
