@@ -411,6 +411,7 @@ def preprocess_dataset_flow(df: pd.DataFrame,target_column: Optional[str] = None
     
     # Step 3: Identify feature types
     feature_types = identify_feature_types(X)
+    print(feature_types)
     
     # Step 4: Transform features
     X_processed = transform_features(X, feature_types)
