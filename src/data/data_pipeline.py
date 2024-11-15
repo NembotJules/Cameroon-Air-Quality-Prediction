@@ -531,7 +531,7 @@ def save_processed_data(
                 axis=0,
                 ignore_index=True
             )
-            historical_features.to_csv('historical_features.csv', index=False)
+            historical_features.to_csv(default_config['data']['preprocessed_train_data_path'], index=False)
         except Exception as e:
             raise Exception(
                 "Failed to concatenate current and historical features: "
