@@ -575,7 +575,7 @@ def save_processed_data(
 
             if 'Unnamed: 0': 
                 historical_target_df.drop('Unnamed: 0', axis = 1, inplace= True)
-                
+
             historical_target_df.to_csv(historical_target_path, index=False)
             
         except Exception as e:
@@ -666,22 +666,65 @@ def create_predictions_df(predictions: List[float], date_city_df: pd.DataFrame) 
     return predictions_df
 
 @task(log_prints=True)
-def save_predictions(predictions_df: pd.DataFrame, output_path: str) -> None:
+def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> None:
     """
-    Saves the predictions DataFrame to CSV.
+    Saves the predictions DataFrame to CSV files organized by date and city.
     
     Args:
-        predictions_df: DataFrame containing predictions with dates and cities
-        output_path: Path where to save the CSV file
+        predictions_df: DataFrame containing predictions with columns: date, city, prediction
+        base_output_path: Base S3 path where to save the CSV files
+                         (e.g., 's3://cameroon-air-quality-bucket/data/pipeline_output/predictions')
+    
+    The function will create the following structure:
+    base_output_path/
+        ├── YYYY-MM-DD/
+        │   ├── city1.csv
+        │   ├── city2.csv
+        │   └── ...
+        └── ...
     """
     try:
-        predictions_df.to_csv(output_path, index=False)
-        print(f"Successfully saved predictions to {output_path}")
+
+        # I also want to saved the complete dataframe
+        predictions_df.to_csv(default_config["data"]["prediction_dataframe_path"], index= False)
+        # Ensure date column is datetime type
+        predictions_df['date'] = pd.to_datetime(predictions_df['date'])
+        
+        # Get unique dates
+        unique_dates = predictions_df['date'].dt.strftime('%Y-%m-%d').unique()
+        
+        # Create directories and save files for each date
+        for date in unique_dates:
+            # Create the date directory path
+            date_dir = f"{base_output_path}/{date}"
+            
+            # Get predictions for this date
+            date_predictions = predictions_df[
+                predictions_df['date'].dt.strftime('%Y-%m-%d') == date
+            ]
+            
+            # Get unique cities for this date
+            cities = date_predictions['city'].unique()
+            
+            # Save predictions for each city
+            for city in cities:
+                # Get city-specific predictions
+                city_predictions = date_predictions[
+                    date_predictions['city'] == city
+                ].copy()
+                
+                # Create the full output path for this city
+                city_output_path = f"{date_dir}/{city.lower()}.csv"
+                
+                # Save the predictions
+                city_predictions.to_csv(city_output_path, index=False)
+                print(f"Successfully saved predictions for {city} on {date} to {city_output_path}")
+        
+        print(f"Successfully saved all predictions to {base_output_path}")
+        
     except Exception as e:
         print(f"Error saving predictions: {str(e)}")
         raise
-
-
 
 
 
@@ -705,6 +748,6 @@ if __name__ == "__main__":
     save_processed_data(X_processed, y, save_path= default_config["data"]["preprocessed_pipeline_features_data_path"])
     predictions = send_to_model_api(X_processed, AQI_API_URL)
     predictions_df = create_predictions_df(predictions, date_city_df=date_city_df)
-    save_predictions(predictions_df, PREDICTIONS_OUTPUT_PATH)
+    save_predictions(predictions_df, base_output_path=default_config["data"]["predictions_base_output_path"])
 
 
