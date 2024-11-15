@@ -183,10 +183,14 @@ if __name__ == "__main__":
         train_rmse, test_rmse = evaluate_model(X, model, test_data, y, test_y)  
 
         # Log metrics
+        print("\nLogging metrics to MLflow:")
+        print(f"Train RMSE: {train_rmse}")
+        print(f"Test RMSE: {test_rmse}")
         mlflow.log_metric('train_rmse', train_rmse)
         mlflow.log_metric('test_rmse', test_rmse)
 
         # Log model
+        print("\nLogging model to MLflow...")
         mlflow.xgboost.log_model(
             registered_model_name=best_model_name,
             artifact_path=best_model_name,
@@ -195,5 +199,6 @@ if __name__ == "__main__":
         )
 
         # Get current best RMSE and update config if new model is better
+        print("\nChecking current best model performance...")
         current_best_rmse = get_current_best_rmse()
         update_config_file(default_config_name, current_run_id, test_rmse, current_best_rmse)
