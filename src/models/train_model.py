@@ -7,17 +7,45 @@ import xgboost as xgb
 from typing import Union, Tuple
 
 
+def update_config_file(config_path: str, new_run_id: str, test_rmse: float, 
+                      current_best_rmse: float = float('inf')) -> None:
+    """
+    Update the config file with a new run_id if the new model performs better.
+    
+    Args:
+        config_path (str): Path to the config file
+        new_run_id (str): MLflow run ID of the new model
+        test_rmse (float): RMSE of the new model
+        current_best_rmse (float): RMSE of the current best model (optional)
+    """
+
+    # Yes test_rmse > current_best_rmse because they are negative value
+    # If test_rmse and current_best_rmse were positive then it should be the inverse
+    if test_rmse > current_best_rmse:
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+            
+        # Update the best_run_id
+        config['mlflow']['best_run_id'] = new_run_id
+        
+        # Save the updated config
+        with open(config_path, 'w') as file:
+            yaml.dump(config, file, default_flow_style=False)
+            
+        print(f"Config updated with new best run ID: {new_run_id}")
+        print(f"New best RMSE: {test_rmse} (previous: {current_best_rmse})")
+    else:
+        print(f"Current model (RMSE: {test_rmse}) did not improve upon best model (RMSE: {current_best_rmse})")
+
+
 # Get the directory of the current file
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Construct the path to the config file
 default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.yaml')
 
-#default_config_name = "../../config/default.yaml"
-
 with open(default_config_name, "r") as file: 
     default_config = yaml.safe_load(file)
-
 
 best_run_id = default_config["mlflow"]["best_run_id"]
 best_model_name = default_config["mlflow"]["best_model_name"]
@@ -25,8 +53,7 @@ mlflow.set_tracking_uri(default_config["mlflow"]["tracking_uri"])
 mlflow.set_experiment(default_config["mlflow"]["experiment_name"])
 
 
-
-def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegressor: 
+def train_model(X: pd.DataFrame, y: Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegressor: 
     """
     Train the model with input validation.
 
@@ -43,7 +70,6 @@ def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegr
         TypeError: If inputs are not pandas DataFrame/Series
         ValueError: If inputs are empty or have different lengths
     """
-
     # Input validation
     if not isinstance(X, pd.DataFrame):
         raise TypeError("X must be a pandas DataFrame")
@@ -58,10 +84,10 @@ def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegr
         raise ValueError("X and y must have the same number of samples")
 
     logged_model = f'runs:/{best_run_id}/{best_model_name}'
-# Load model as a PyFuncModel.
+    # Load model as a PyFuncModel.
     model = mlflow.xgboost.load_model(logged_model)
 
-     # Retrieve the run that created this model
+    # Retrieve the run that created this model
     run = mlflow.get_run(best_run_id)
     
     # Print the parameters used during training
@@ -74,13 +100,14 @@ def train_model(X:pd.DataFrame, y:Union[pd.Series, pd.DataFrame]) -> xgb.XGBRegr
     return model
 
 
-def evaluate_model(X:pd.DataFrame, model:xgb.XGBRegressor, 
-                   test_data:pd.DataFrame, y:Union[pd.Series, pd.DataFrame], 
-                   test_target:Union[pd.Series, pd.DataFrame]) -> Tuple[float, float]: 
+def evaluate_model(X: pd.DataFrame, model: xgb.XGBRegressor, 
+                  test_data: pd.DataFrame, y: Union[pd.Series, pd.DataFrame], 
+                  test_target: Union[pd.Series, pd.DataFrame]) -> Tuple[float, float]: 
     # Evaluate training performance 
     y_train_pred = model.predict(X)
     train_rmse = root_mean_squared_error(y, y_train_pred)
     print(f'Training RMSE: {train_rmse}')
+    
     # Evaluate testing performance 
     y_test_pred = model.predict(test_data)
     test_rmse = root_mean_squared_error(test_target, y_test_pred)
@@ -89,22 +116,47 @@ def evaluate_model(X:pd.DataFrame, model:xgb.XGBRegressor,
     return train_rmse, test_rmse
 
 
+def get_current_best_rmse() -> float:
+    """
+    Get the RMSE of the current best model from MLflow.
+    
+    Returns:
+        float: RMSE of the current best model, or inf if no previous model exists
+    """
+    try:
+        run = mlflow.get_run(best_run_id)
+        return run.data.metrics.get('test_rmse', float('inf'))
+    except:
+        return float('inf')
+
 
 if __name__ == "__main__": 
-
-    with mlflow.start_run():
+    with mlflow.start_run() as run:
+        # Get the current run ID
+        current_run_id = run.info.run_id
+        
+        # Load and prepare data
         X = pd.read_csv(default_config["data"]["preprocessed_train_data_path"])
         y = pd.read_csv(default_config["data"]["preprocessed_train_target_path"])
         test_data = pd.read_csv(default_config["data"]["preprocessed_test_data_path"])
         test_y = pd.read_csv(default_config["data"]["preprocessed_test_target_path"])
+        
+        # Train and evaluate model
         model = train_model(X, y)
-        train_rmse, test_rmse =  evaluate_model(X, model, test_data, y, test_y)  
+        train_rmse, test_rmse = evaluate_model(X, model, test_data, y, test_y)  
 
+        # Log metrics
         mlflow.log_metric('train_rmse', train_rmse)
         mlflow.log_metric('test_rmse', test_rmse)
 
+        # Log model
         mlflow.xgboost.log_model(
-                registered_model_name = best_model_name,
-                artifact_path = best_model_name,
-                xgb_model = model,
-                input_example = X)
+            registered_model_name=best_model_name,
+            artifact_path=best_model_name,
+            xgb_model=model,
+            input_example=X
+        )
+
+        # Get current best RMSE and update config if new model is better
+        current_best_rmse = get_current_best_rmse()
+        update_config_file(default_config_name, current_run_id, test_rmse, current_best_rmse)
