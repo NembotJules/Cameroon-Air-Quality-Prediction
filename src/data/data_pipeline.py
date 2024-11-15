@@ -53,7 +53,7 @@ CITIES = [
 weather_url = "https://api.open-meteo.com/v1/forecast"
 aqi_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
-aqi_features = ["carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "aerosol_optical_depth", "dust", "uv_index", "uv_index_clear_sky"]
+aqi_features = ["carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "aerosol_optical_depth", "dust", "uv_index", "uv_index_clear_sky", "pm2_5"]
 
 weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min", "temperature_2m_mean", "apparent_temperature_max", 
                "apparent_temperature_min", "apparent_temperature_mean", "daylight_duration", "sunshine_duration",
@@ -197,7 +197,8 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
             "aerosol_optical_depth": hourly.Variables(4).ValuesAsNumpy(),
             "dust": hourly.Variables(5).ValuesAsNumpy(),
             "uv_index": hourly.Variables(6).ValuesAsNumpy(),
-            "uv_index_clear_sky": hourly.Variables(7).ValuesAsNumpy()
+            "uv_index_clear_sky": hourly.Variables(7).ValuesAsNumpy(), 
+            "pm2_5": hourly.Variables(8).ValuesAsNumpy()
         }
 
         hourly_df = pd.DataFrame(data=hourly_data)
@@ -220,6 +221,17 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     # Ensure the final dataset has 70 rows (7 days x 10 cities)
     print(f"The shape of the combined daily AQI Dataframe is {combined_daily_aqi_df.shape}")
     assert combined_daily_aqi_df.shape[0] == 70, "Final dataset does not have 70 rows as expected."
+
+    #Saving the target column...
+    y_pipeline = combined_daily_aqi_df[default_config["target_column"]]
+    y_pipeline.to_csv('y_pipeline.csv', index = False)
+    y_pipeline.to_csv(default_config["data"]["preprocessed_pipeline_target_path"])
+
+    assert y_pipeline.shape[0] == 70, "Target dataset fetched from the API does not have 70 rows as expected"
+
+    print("Successfully fetched and saved current PM 2_5 values (target) from the API")
+
+    combined_daily_aqi_df.drop(default_config["target_column"], axis = 1, inplace = True)
 
     # Save the final DataFrame to CSV and return it
     combined_daily_aqi_df.to_csv('combined_daily_aqi_df.csv', index=False)
@@ -520,23 +532,53 @@ def save_processed_data(
     try:
         # Save current processed features
         X.to_csv(save_path, index=False)
+       
         
         # Read and concatenate with historical data
-        historical_path = default_config['data']['preprocessed_train_data_path']
-        historical_features = pd.read_csv(historical_path)
+        #Historical data paths
+        historical_features_path = default_config['data']['preprocessed_train_data_path']
+        historical_target_path = default_config['data']['preprocessed_train_target_path']
+
+        # Historical data features (X, y)
+        historical_features_df = pd.read_csv(historical_features_path)
+        historical_target_df = pd.read_csv(historical_target_path)
         
+        # Trying to concatenate historical features df with the current fetch features to enable retraining later...
         try:
-            historical_features = pd.concat(
-                [historical_features, X],
+            historical_features_df = pd.concat(
+                [historical_features_df, X],
                 axis=0,
                 ignore_index=True
             )
-            historical_features.to_csv(default_config['data']['preprocessed_train_data_path'], index=False)
+            historical_features_df.to_csv(historical_features_path, index=False)
         except Exception as e:
             raise Exception(
                 "Failed to concatenate current and historical features: "
                 f"{str(e)}"
             )
+        
+        # Trying to concatenate historical target df with the current target values to enable retraining later...
+
+        try: 
+            # try to load pm2_5 values (target) from the actual pipeline run
+            y_pipeline = pd.read_csv(default_config["data"]["preprocessed_pipeline_target_path"])
+
+        except Exception as e: 
+            raise Exception(f"Failed to concatenate current and historical target values: {str(e)}")
+
+        try:
+            historical_target_df = pd.concat(
+                [historical_target_df, y_pipeline],
+                axis=0,
+                ignore_index=True
+            )
+            historical_target_df.to_csv(historical_target_path, index=False)
+        except Exception as e:
+            raise Exception(
+                "Failed to concatenate current and historical features: "
+                f"{str(e)}"
+            )
+        
 
         # Save target variable if provided
         if y is not None:
