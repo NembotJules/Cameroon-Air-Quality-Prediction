@@ -225,44 +225,143 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     combined_daily_aqi_df.to_csv('combined_daily_aqi_df.csv', index=False)
     return combined_daily_aqi_df
 
-
-
 @task(log_prints=True)
 def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Optional[pd.DataFrame]:
     """
-    Combines weather_df and aqi_df on matching date and city rows.
-
-    Args: 
-        aqi_df_path (str): Path to the daily AQI DataFrame (CSV file with 'date' and 'city' columns).
-        weather_df_path (str): Path to the daily weather DataFrame (CSV file with 'date' and 'city' columns).
-
-    Returns: 
-        pd.DataFrame: DataFrame containing daily weather and AQI data for all the cities,
-        or None if files are not found or merging fails.
-
-    """
-
-     # Load data from the CSV files
-    weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
-    aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
-
-   # Check if DataFrames exist, are not None, and not empty
-    if any(df is None or df.empty for df in [aqi_df, weather_df]):
-        print("Error: One or both of the DataFrames are None or empty.")
-        return None
-    try:
-       
+    Combines weather_df and aqi_df on matching date and city rows with comprehensive validation.
+    
+    Args:
+        aqi_df (pd.DataFrame): DataFrame containing AQI data
+        weather_df (pd.DataFrame): DataFrame containing weather data
         
-        # Merge DataFrames on 'date' and 'city'
-        combined_df = pd.merge(weather_df, aqi_df, on=['date', 'city', 'latitude', 'longitude'], how='inner')
+    Returns:
+        Optional[pd.DataFrame]: Merged DataFrame if successful, None if critical errors occur
+    """
+    try:
+        # Store original row counts for validation
+        original_counts = {
+            'weather': len(weather_df),
+            'aqi': len(aqi_df)
+        }
+        
+        print("\n=== Pre-Processing Validation ===")
+        
+        # Check for missing values in key columns
+        key_columns = ['date', 'city', 'latitude', 'longitude']
+        for df_name, df in [('Weather', weather_df), ('AQI', aqi_df)]:
+            missing = df[key_columns].isnull().sum()
+            if missing.any():
+                print(f"\nWarning: Missing values found in {df_name} DataFrame:")
+                print(missing[missing > 0])
+        
+        # Clean and standardize the data
+        for df in [weather_df, aqi_df]:
+            # Convert dates to consistent format
+            df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
+            
+            # Clean string columns
+            df['city'] = df['city'].str.strip()
+            
+            # Round coordinates for consistency
+            df['latitude'] = df['longitude'].round(4)
+            df['longitude'] = df['longitude'].round(4)
+        
+        print("\n=== Data Coverage Analysis ===")
+        
+        # Get unique cities
+        all_cities = sorted(set(weather_df['city'].unique()) | set(aqi_df['city'].unique()))
+        
+        # Compare data coverage for each city
+        coverage_issues = False
+        for city in all_cities:
+            weather_dates = set(weather_df[weather_df['city'] == city]['date'])
+            aqi_dates = set(aqi_df[aqi_df['city'] == city]['date'])
+            
+            weather_count = len(weather_dates)
+            aqi_count = len(aqi_dates)
+            
+            print(f"\nCity: {city}")
+            print(f"Weather data dates: {weather_count}")
+            print(f"AQI data dates: {aqi_count}")
+            
+            # Check for mismatches
+            missing_in_weather = aqi_dates - weather_dates
+            missing_in_aqi = weather_dates - aqi_dates
+            
+            if missing_in_weather:
+                coverage_issues = True
+                print(f"Dates missing in weather data: {sorted(missing_in_weather)}")
+            if missing_in_aqi:
+                coverage_issues = True
+                print(f"Dates missing in AQI data: {sorted(missing_in_aqi)}")
+            
+            # Check coordinate consistency
+            weather_coords = weather_df[weather_df['city'] == city][['latitude', 'longitude']].drop_duplicates()
+            aqi_coords = aqi_df[aqi_df['city'] == city][['latitude', 'longitude']].drop_duplicates()
+            
+            if len(weather_coords) > 1 or len(aqi_coords) > 1:
+                coverage_issues = True
+                print(f"Warning: Multiple coordinate pairs found for {city}")
+                print("Weather coordinates:")
+                print(weather_coords)
+                print("AQI coordinates:")
+                print(aqi_coords)
+        
+        # Perform the merge
+        print("\n=== Performing Merge ===")
+        combined_df = pd.merge(
+            weather_df,
+            aqi_df,
+            on=['date', 'city', 'latitude', 'longitude'],
+            how='inner',
+            validate='1:1'  # Ensure we don't get duplicate matches
+        )
+        
+        # Post-merge validation
+        print("\n=== Post-Merge Validation ===")
+        
+        # Check for expected number of rows per city
+        city_stats = []
+        for city in all_cities:
+            weather_city_count = len(weather_df[weather_df['city'] == city])
+            aqi_city_count = len(aqi_df[aqi_df['city'] == city])
+            merged_city_count = len(combined_df[combined_df['city'] == city])
+            
+            expected_count = min(weather_city_count, aqi_city_count)
+            if merged_city_count != expected_count:
+                print(f"\nWarning: Unexpected row count for {city}")
+                print(f"Expected: {expected_count}, Got: {merged_city_count}")
+            
+            city_stats.append({
+                'city': city,
+                'weather_rows': weather_city_count,
+                'aqi_rows': aqi_city_count,
+                'merged_rows': merged_city_count
+            })
+        
+        # Create a summary DataFrame
+        summary_df = pd.DataFrame(city_stats)
+        print("\n=== Merge Summary ===")
+        print(summary_df.to_string())
+        
+        # Final validation
+        total_merged = len(combined_df)
+        print(f"\nTotal rows in merged dataset: {total_merged}")
+        if coverage_issues:
+            print("\nWarning: Some data coverage issues were detected. Please review the logs above.")
         
         # Save combined DataFrame to CSV
-        combined_df.to_csv('daily_weather_aqi_df.csv', index=False)
+        output_path = 'daily_weather_aqi_df.csv'
+        combined_df.to_csv(output_path, index=False)
+        print(f"\nMerged data saved to: {output_path}")
         
         return combined_df
 
     except Exception as e:
         print(f"Error occurred during merging: {e}")
+        print("Stack trace:")
+        import traceback
+        print(traceback.format_exc())
         return None
 
 
