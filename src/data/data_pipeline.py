@@ -359,7 +359,7 @@ def transform_features(
     # Convert to DataFrame maintaining column names
     return pd.DataFrame(
         X_transformed,
-        columns=numeric_features + categorical_features
+        columns=df.columns
     )
 
 # @task
