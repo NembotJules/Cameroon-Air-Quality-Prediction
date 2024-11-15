@@ -272,97 +272,137 @@ def create_date_city_df(df: pd.DataFrame) -> pd.DataFrame:
     date_city_df = df[['date', 'city']]
     return date_city_df
 
+@task(log_prints=True)
+def identify_feature_types(df: pd.DataFrame) -> Dict[str, List[str]]:
+    """
+    Identify numeric and categorical features in the DataFrame with proper type checking.
+    """
+    # First, convert date column to datetime if it exists
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'])
+    
+    # Initialize feature lists
+    numeric_features = []
+    categorical_features = []
+    
+    # Explicitly check each column
+    for column in df.columns:
+        # Skip date and city columns
+        if column in ['date', 'city']:
+            categorical_features.append(column)
+            continue
+            
+        # Check if column contains numeric data
+        try:
+            pd.to_numeric(df[column])
+            numeric_features.append(column)
+        except (ValueError, TypeError):
+            categorical_features.append(column)
+    
+    print(f"Identified numeric features: {numeric_features}")
+    print(f"Identified categorical features: {categorical_features}")
+    
+    return {
+        'numeric': numeric_features,
+        'categorical': categorical_features
+    }
 
-@task
+@task(log_prints=True)
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Clean the input DataFrame by removing unnecessary columns and invalid data.
+    Clean the input DataFrame by handling data types and invalid data.
     """
     df_cleaned = df.copy()
     
-    # Drop unnecessary columns
-    if 'id' in df_cleaned.columns:
-        df_cleaned = df_cleaned.drop(columns=['id'])
+    # Convert date column to datetime
+    if 'date' in df_cleaned.columns:
+        df_cleaned['date'] = pd.to_datetime(df_cleaned['date'])
+    
+    # Ensure numeric columns are properly typed
+    numeric_columns = df_cleaned.select_dtypes(include=['float64', 'int64']).columns
+    for col in numeric_columns:
+        df_cleaned[col] = pd.to_numeric(df_cleaned[col], errors='coerce')
     
     # Remove missing values and duplicates
     df_cleaned = df_cleaned.dropna()
     df_cleaned = df_cleaned.drop_duplicates()
     
+    print(f"Cleaned DataFrame shape: {df_cleaned.shape}")
+    print(f"Column dtypes after cleaning:\n{df_cleaned.dtypes}")
+    
     return df_cleaned
 
-@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
-def separate_features_target(
-    df: pd.DataFrame, 
-    target_column: Optional[str]
-) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
-    """
-    Separate features and target variable if target column is provided.
-    """
-    if target_column and target_column in df.columns:
-        return df.drop(columns=[target_column]), df[target_column]
-    return df, None
-
-@task
-def identify_feature_types(df: pd.DataFrame) -> Dict[str, List[str]]:
-    """
-    Identify numeric and categorical features in the DataFrame.
-    """
-    return {
-        'numeric': df.select_dtypes(include=['int64', 'float64']).columns.tolist(),
-        'categorical': df.select_dtypes(include=['object']).columns.tolist()
-    }
-
-@task
+@task(log_prints=True)
 def transform_features(
     df: pd.DataFrame,
     feature_types: Dict[str, List[str]]
 ) -> pd.DataFrame:
     """
-    Apply transformations to features based on their types.
+    Apply transformations to features based on their types with proper handling.
     """
+    df_transformed = df.copy()
+    
+    # Handle numeric features
     numeric_features = feature_types['numeric']
-    categorical_features = feature_types['categorical']
+    if numeric_features:
+        # Apply StandardScaler to numeric features
+        scaler = StandardScaler()
+        df_transformed[numeric_features] = scaler.fit_transform(df_transformed[numeric_features])
+        print(f"Transformed numeric features: {numeric_features}")
     
-    def log_transform(data: pd.DataFrame) -> pd.DataFrame:
-        """Apply log transformation to numeric features."""
-        data = data.copy()
-        data[numeric_features] = np.log1p(data[numeric_features])
-        return data
-    
-    def encode_categoricals(data: pd.DataFrame) -> pd.DataFrame:
-        """Encode categorical features using LabelEncoder."""
-        data = data.copy()
-        encoders = {}
+    # Handle categorical features (excluding 'date')
+    categorical_features = [f for f in feature_types['categorical'] if f != 'date']
+    if categorical_features:
         for feature in categorical_features:
-            encoders[feature] = LabelEncoder()
-            data[feature] = encoders[feature].fit_transform(data[feature])
-        return data
+            if feature == 'city':  # Special handling for city
+                encoder = LabelEncoder()
+                df_transformed[feature] = encoder.fit_transform(df_transformed[feature])
+                print(f"Encoded categorical feature: {feature}")
     
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('numeric', 
-             Pipeline([
-                 ('log', FunctionTransformer(log_transform)),
-                 ('scaler', StandardScaler())
-             ]),
-             numeric_features),
-            ('categorical', 
-             FunctionTransformer(encode_categoricals),
-             categorical_features)
-        ],
-        remainder='passthrough'
-    )
+    print(f"Transformed DataFrame shape: {df_transformed.shape}")
+    print(f"Sample of transformed data:\n{df_transformed.head()}")
     
-    # Transform the data
-    X_transformed = preprocessor.fit_transform(df)
+    return df_transformed
+
+@flow(name="Data Preprocessing Pipeline")
+def preprocess_dataset_flow(
+    df: pd.DataFrame,
+    target_column: Optional[str] = None
+) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
+    """
+    Main workflow for data preprocessing with improved flow control.
+    """
+    print("Starting preprocessing pipeline...")
     
-    # Convert to DataFrame maintaining column names
-    print(numeric_features)
-    print(categorical_features)
-    return pd.DataFrame(
-        X_transformed,
-        columns=df.columns
-    )
+    # Step 1: Clean the DataFrame
+    print("\nStep 1: Cleaning DataFrame...")
+    df_cleaned = clean_dataframe(df)
+    
+    # Step 2: Separate features and target if specified
+    print("\nStep 2: Separating features and target...")
+    X = df_cleaned.copy()
+    y = None
+    if target_column and target_column in df_cleaned.columns:
+        y = df_cleaned[target_column]
+        X = X.drop(columns=[target_column])
+    
+    # Step 3: Identify feature types
+    print("\nStep 3: Identifying feature types...")
+    feature_types = identify_feature_types(X)
+    
+    # Step 4: Transform features
+    print("\nStep 4: Transforming features...")
+    X_processed = transform_features(X, feature_types)
+    
+    # Save processed data
+    print("\nSaving processed data...")
+    X_processed.to_csv('processed_features.csv', index=False)
+    if y is not None:
+        y.to_csv('target.csv', index=False)
+    
+    print("\nPreprocessing pipeline completed successfully!")
+    return X_processed, y
+
 
 # @task
 # def save_processed_data(
@@ -384,45 +424,6 @@ def transform_features(
 #     except Exception as e:
 #         raise Exception(f"Error saving processed data: {str(e)}")
 
-@flow(name="Data Preprocessing Pipeline")
-def preprocess_dataset_flow(df: pd.DataFrame,target_column: Optional[str] = None,save_path: Optional[str] = None) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
-    """
-    Main workflow that orchestrates the data preprocessing pipeline.
-    
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        Input DataFrame to preprocess
-    target_column : str, optional
-        Name of the target column if present
-    save_path : str, optional
-        Path to save the processed DataFrame
-        
-    Returns:
-    --------
-    Tuple[pd.DataFrame, Optional[pd.Series]]
-        Processed features (X) and target variable (y) if target_column is provided
-    """
-    # Step 1: Clean the DataFrame
-    df_cleaned = clean_dataframe(df)
-    
-    # Step 2: Separate features and target
-    X, y = separate_features_target(df_cleaned, target_column)
-    
-    # Step 3: Identify feature types
-    feature_types = identify_feature_types(X)
-    print(feature_types)
-    
-    # Step 4: Transform features
-    X_processed = transform_features(X, feature_types)
-    
-    # Step 5: Save processed data
-    # save_processed_data(X_processed, y, save_path)
-
-    X_processed.to_csv('X.csv', index = False)
-    print(X_processed.shape)
-    
-    return X_processed, y
 
 
 
@@ -582,5 +583,4 @@ if __name__ == "__main__":
     X_processed, y = preprocess_dataset_flow(
         merged_df,
        # target_column='target',
-        save_path='processed_data.csv'
     )
