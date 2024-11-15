@@ -68,6 +68,20 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # Convert date column to datetime
     if 'date' in df_cleaned.columns:
         df_cleaned['date'] = pd.to_datetime(df_cleaned['date'])
+
+    if 'id' in df_cleaned.columns: 
+        df_cleaned.drop('id', axis = 1, inplace=True)
+        
+    if 'sunset' in df_cleaned.columns: 
+        df_cleaned.drop('sunset', axis = 1, inplace=True)
+
+    if 'snowfall_sum' in df_cleaned.columns: 
+        df_cleaned.drop('snowfall_sum', axis = 1, inplace=True)
+
+    if 'sunrise' in df_cleaned.columns: 
+        df_cleaned.drop('sunrise', axis = 1, inplace=True)
+
+    
     
     # Ensure numeric columns are properly typed
     numeric_columns = df_cleaned.select_dtypes(include=['float64', 'int64']).columns
