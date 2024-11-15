@@ -270,6 +270,7 @@ def merge_aqi_weather_df(aqi_df: pd.DataFrame, weather_df: pd.DataFrame) -> Opti
 @task
 def create_date_city_df(df: pd.DataFrame) -> pd.DataFrame: 
     date_city_df = df[['date', 'city']]
+    df.drop('date', axis = 1, inplace=True)
     return date_city_df
 
 @task(log_prints=True)
@@ -404,39 +405,47 @@ def preprocess_dataset_flow(
     return X_processed, y
 
 
-# @task
-# def save_processed_data(
-#     X: pd.DataFrame,
-#     y: Optional[pd.Series],
-#     save_path: Optional[str]
-# ) -> None:
-#     """
-#     Save processed features and target data if save_path is provided.
-#     """
-#     if not save_path:
-#         return
+@task
+def save_processed_data(
+    X: pd.DataFrame,
+    y: Optional[pd.Series],
+    save_path: Optional[str]
+) -> None:
+    """
+    Save processed features, add them to the historical processed features to enable retraining later, and
+    save the final result
+    """
+    if not save_path:
+        return
     
-#     try:
-#         X.to_csv(save_path, index=False)
-#         if y is not None:
-#             target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
-#             y.to_csv(target_path, index=False)
-#     except Exception as e:
-#         raise Exception(f"Error saving processed data: {str(e)}")
+    try:
+        # Save current processed features
+        X.to_csv(save_path, index=False)
+        
+        # Read and concatenate with historical data
+        historical_path = default_config['data']['preprocessed_train_data_path']
+        historical_features = pd.read_csv(historical_path)
+        
+        try:
+            historical_features = pd.concat(
+                [historical_features, X],
+                axis=0,
+                ignore_index=True
+            )
+            historical_features.to_csv(historical_path, index=False)
+        except Exception as e:
+            raise Exception(
+                "Failed to concatenate current and historical features: "
+                f"{str(e)}"
+            )
 
-
-
-
-#*@task
-#def etl(): 
-  #  weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
- #   aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features)
- #   merged_weather_aqi_df = merge_aqi_weather_df(aqi_df = aqi_df, weather_df= weather_df)
- #   date_city_df = create_date_city_df(merged_weather_aqi_df)
-  #  preprocess_and_save_data(merged_weather_aqi_df)
-
-   # return date_city_df, preprocess_data(merged_weather_aqi_df)
-
+        # Save target variable if provided
+        if y is not None:
+            target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
+            y.to_csv(target_path, index=False)
+            
+    except Exception as e:
+        raise Exception(f"Failed to save processed data: {str(e)}")
 
 # @task(log_prints=True)
 # def send_to_model_api(features_df: pd.DataFrame, api_url: str) -> List[float]:
@@ -527,30 +536,7 @@ def preprocess_dataset_flow(
 #         raise
 
 
-# @flow
-# def etl_and_preprocess():
-#     # 1. Create weather_df
-#     weather_df = create_weather_df(weather_url=weather_url, cities=CITIES, features=weather_df_features)
 
-#     # 2. Create aqi_df
-#     aqi_df = create_aqi_df(aqi_url=aqi_url, cities=CITIES, features=aqi_features, upstream_tasks=weather_df)
-
-#     # 3. Merge aqi_df and weather_df
-#     merged_weather_aqi_df = merge_aqi_weather_df(aqi_df=aqi_df, weather_df=weather_df, upstream_tasks=aqi_df)
-
-#     # 4. Create date_city_df
-#     date_city_df = create_date_city_df(merged_weather_aqi_df, upstream_tasks=merge_aqi_weather_df)
-
-#     # 5. Clean data
-#     cleaned_df = clean_data(merged_weather_aqi_df, upstream_tasks=date_city_df)
-
-#     # 6. Preprocessor transform
-#     X, y = preprocess_data(cleaned_df, upstream_tasks=cleaned_df)
-
-#     # 7. Save preprocessed data
-#     preprocess_and_save_data(X)
-
-#     return date_city_df, X
 
 
 
@@ -584,3 +570,5 @@ if __name__ == "__main__":
         merged_df,
        # target_column='target',
     )
+
+    save_processed_data(X_processed, y, save_path='.')
