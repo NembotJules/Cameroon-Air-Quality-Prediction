@@ -357,6 +357,8 @@ def transform_features(
     X_transformed = preprocessor.fit_transform(df)
     
     # Convert to DataFrame maintaining column names
+    print(numeric_features)
+    print(categorical_features)
     return pd.DataFrame(
         X_transformed,
         columns=df.columns
