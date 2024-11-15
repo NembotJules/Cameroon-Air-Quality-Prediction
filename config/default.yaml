@@ -12,6 +12,7 @@ data:
   raw_test_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/test.csv
   raw_train_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/train.csv
   sample_submission_path: s3://cameroon-air-quality-bucket/data/train_test_data/sample_submission.csv
+  predictions_base_output_path: s3://cameroon-air-quality-bucket/data/pipeline_output/predictions
 
 mlflow:
   best_model_name: XGBR2
@@ -22,7 +23,7 @@ mlflow:
     Project: Cameroon Air Quality Prediction
     Team: MaxTheKing
   tracking_uri: http://3.92.207.97:5000/
-  
+
 models:
   catboost:
     bagging_temperature: 1.0
