@@ -1,182 +1,208 @@
 import streamlit as st
-import pandas as pd 
-import numpy as np
-import plotly.express as px
+import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import datetime, timedelta
-from scipy import stats
+import numpy as np
 
 # Set page config
-st.set_page_config(page_title="Cameroon AQI Prediction", layout="wide")
+st.set_page_config(
+    page_title="Cameroon Air Quality",
+    page_icon="🌍",
+    layout="wide"
+)
 
-# Sidebar for progress indicators
-with st.sidebar:
-    st.header("Working Progress")
-    st.progress(100)
+# Custom CSS
+st.markdown("""
+    <style>
+    .main {
+        padding: 0rem 1rem;
+    }
+    .stMetric {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+    .custom-metric-container {
+        background-color: #ffffff;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .metric-title {
+        font-size: 0.8rem;
+        color: #666;
+        margin-bottom: 0.2rem;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+    }
+    .metric-subtitle {
+        font-size: 0.7rem;
+        color: #888;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def load_data(date_str):
+    """
+    Load prediction data for a specific date from S3
+    """
+    # Replace this with your actual data loading logic
+    # Example data generation for demonstration
+    times = pd.date_range(start=f"{date_str} 00:00", end=f"{date_str} 23:59", freq='H')
+    aqi_values = np.random.normal(15, 5, len(times))
+    df = pd.DataFrame({
+        'timestamp': times,
+        'aqi': aqi_values
+    })
+    return df
+
+def create_time_series(df):
+    """Create a time series plot using Plotly"""
+    fig = go.Figure()
     
-    st.subheader("Connecting to Data Store")
-    st.success("Successfully connected ✓")
+    fig.add_trace(go.Scatter(
+        x=df['timestamp'],
+        y=df['aqi'],
+        mode='lines+markers',
+        line=dict(color='#76B947', width=2),
+        marker=dict(size=6, color='#76B947'),
+    ))
     
-    st.subheader("Collecting weather forecasts")
-    st.success("Collected ✓")
+    fig.update_layout(
+        plot_bgcolor='rgba(255,255,255,0)',
+        paper_bgcolor='rgba(255,255,255,0)',
+        margin=dict(l=20, r=20, t=20, b=20),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(230,230,230,0.8)',
+            title=None,
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='rgba(230,230,230,0.8)',
+            title='AQI',
+            range=[0, max(df['aqi']) * 1.2]
+        ),
+        height=300,
+    )
     
-    st.subheader("Loading the models")
-    st.success("Models loaded ✓")
+    return fig
+
+def create_map():
+    """Create an interactive map using Plotly"""
+    # Example coordinates for Cameroon cities
+    cities = {
+        'Yaoundé': {'lat': 3.8667, 'lon': 11.5167, 'aqi': 74},
+        'Douala': {'lat': 4.0500, 'lon': 9.7000, 'aqi': 79},
+        'Bamenda': {'lat': 5.9333, 'lon': 10.1667, 'aqi': 34},
+    }
     
-    st.subheader("Rendering the map")
-    st.success("Map loaded ✓")
+    fig = go.Figure()
 
-# Main content
-st.title("PM2.5 Predictions for Cameroon 🇨🇲")
+    # Add scatter markers for cities
+    fig.add_trace(go.Scattermapbox(
+        lat=[cities[city]['lat'] for city in cities],
+        lon=[cities[city]['lon'] for city in cities],
+        mode='markers+text',
+        marker=dict(
+            size=15,
+            color=[cities[city]['aqi'] for city in cities],
+            colorscale='RdYlGn_r',
+            showscale=True,
+            colorbar=dict(title='AQI'),
+        ),
+        text=[f"{city}: {cities[city]['aqi']}" for city in cities],
+        textposition="top center",
+        name='Cities'
+    ))
 
-# Date selection
-dates = ["Today", "Tomorrow"] + [(datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(2, 7)]
-selected_date = st.radio("Select forecasting day", dates, horizontal=True)
+    fig.update_layout(
+        mapbox_style="carto-positron",
+        mapbox=dict(
+            center=dict(lat=7.3697, lon=12.3547),
+            zoom=5
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=400,
+    )
+    
+    return fig
 
-# Define cities and their coordinates
-cities = {
-    "Douala": (4.0511, 9.7679),
-    "Yaoundé": (3.8480, 11.5021),
-    "Maroua": (10.5910, 14.3158),
-    "Garoua": (9.3017, 13.3921),
-    "Nkongsamba": (4.9500, 9.9333),
-    "Buea": (4.1536, 9.2427),
-    "Baffoussam": (5.4768, 10.4214),
-    "Ebolowa": (2.9000, 11.1500),
-    "Bertoua": (4.5785, 13.6846),
-    "Bamenda": (5.9631, 10.1591)
-}
+def main():
+    # Header
+    st.title("🌍 Cameroon Air Quality Dashboard")
+    
+    # City selector and date picker in the sidebar
+    st.sidebar.title("Controls")
+    selected_city = st.sidebar.selectbox(
+        "Select City",
+        ["Yaoundé", "Douala", "Bamenda"]
+    )
+    
+    selected_date = st.sidebar.date_input(
+        "Select Date",
+        datetime.now().date()
+    )
+    
+    # Load data
+    df = load_data(selected_date)
+    
+    # Top metrics row
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+            <div class="custom-metric-container">
+                <div class="metric-title">Current AQI</div>
+                <div class="metric-value">76</div>
+                <div class="metric-subtitle">Updated 5 minutes ago</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+            <div class="custom-metric-container">
+                <div class="metric-title">24h Min</div>
+                <div class="metric-value">11</div>
+                <div class="metric-subtitle">at 10:09 AM</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+            <div class="custom-metric-container">
+                <div class="metric-title">24h Max</div>
+                <div class="metric-value">24</div>
+                <div class="metric-subtitle">at 2:08 PM</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    # Time series and map
+    st.markdown("### 24-Hour AQI Trend")
+    st.plotly_chart(create_time_series(df), use_container_width=True)
+    
+    st.markdown("### Regional Air Quality Map")
+    st.plotly_chart(create_map(), use_container_width=True)
+    
+    # Additional information
+    st.markdown("### Air Quality Information")
+    info_col1, info_col2 = st.columns(2)
+    
+    with info_col1:
+        st.info("""
+        **PM2.5 Concentration (2023)**
+        4.8 times the WHO annual air quality guideline value
+        """)
+    
+    with info_col2:
+        st.warning("""
+        **Air Quality Status**
+        Moderate - May cause breathing discomfort for sensitive groups
+        """)
 
-# Generate mock AQI data
-@st.cache_data
-def generate_aqi_data():
-    return {city: np.random.randint(0, 300, 7) for city in cities}
-
-aqi_data = generate_aqi_data()
-
-# Create a DataFrame for the map
-df = pd.DataFrame({
-    "City": list(cities.keys()),
-    "Latitude": [coord[0] for coord in cities.values()],
-    "Longitude": [coord[1] for coord in cities.values()],
-    "AQI": [aqi_data[city][dates.index(selected_date)] for city in cities]
-})
-
-# Create the map
-fig = px.scatter_mapbox(df, lat="Latitude", lon="Longitude", color="AQI", size="AQI",
-                        color_continuous_scale=px.colors.sequential.Plasma,
-                        size_max=30, zoom=5, mapbox_style="carto-positron",
-                        hover_name="City", hover_data={"Latitude": False, "Longitude": False})
-
-fig.update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0})
-
-# Display the map
-st.plotly_chart(fig, use_container_width=True)
-
-# City selection for detailed view
-selected_city = st.selectbox("Select the city to view forecast plots for the whole week", list(cities.keys()))
-
-# Create line chart for selected city
-city_data = aqi_data[selected_city]
-fig_line = go.Figure()
-fig_line.add_trace(go.Scatter(x=dates, y=city_data, mode='lines+markers', name='PM2.5 Forecast'))
-fig_line.update_layout(title=f"PM2.5 Forecast for {selected_city}",
-                       xaxis_title="Date",
-                       yaxis_title="PM2.5 Level")
-
-# Display the line chart
-st.plotly_chart(fig_line, use_container_width=True)
-
-# Real-time AQI Trend Analyzer and Predictive Alert System
-st.header("🚀 Real-time AQI Trend Analyzer and Predictive Alert System")
-st.write("This feature analyzes recent AQI trends and predicts potential air quality issues.")
-
-# Generate mock historical data
-historical_data = np.random.randint(0, 300, 24)  # 24 hours of data
-
-# Calculate trend
-slope, intercept, r_value, p_value, std_err = stats.linregress(range(len(historical_data)), historical_data)
-
-# Predict next 6 hours
-future_hours = 6
-predicted_values = [slope * (len(historical_data) + i) + intercept for i in range(1, future_hours + 1)]
-
-# Create trend chart
-fig_trend = go.Figure()
-fig_trend.add_trace(go.Scatter(x=list(range(24)), y=historical_data, mode='lines', name='Historical Data'))
-fig_trend.add_trace(go.Scatter(x=list(range(23, 23 + future_hours)), y=[historical_data[-1]] + predicted_values, mode='lines', name='Predicted Trend', line=dict(dash='dash')))
-fig_trend.update_layout(title=f"AQI Trend Analysis for {selected_city}",
-                        xaxis_title="Hours",
-                        yaxis_title="AQI Level")
-
-# Display the trend chart
-st.plotly_chart(fig_trend, use_container_width=True)
-
-# Predictive Alert System
-alert_threshold = 150  # AQI threshold for alert
-
-if any(value > alert_threshold for value in predicted_values):
-    st.error(f"⚠️ Alert: AQI levels in {selected_city} are predicted to exceed {alert_threshold} in the next 6 hours!")
-    st.write("Recommended actions:")
-    st.write("1. Limit outdoor activities")
-    st.write("2. Use air purifiers if available")
-    st.write("3. Keep windows closed")
-elif slope > 0:
-    st.warning(f"⚠️ Caution: AQI levels in {selected_city} show an increasing trend. Stay informed about air quality updates.")
-else:
-    st.success(f"✅ Good news! AQI levels in {selected_city} are stable or decreasing. Enjoy your day!")
-
-# AQI Impact Analysis
-st.header("AQI Impact Analysis")
-st.write("Understand how different factors affect air quality in real-time.")
-
-col1, col2, col3 = st.columns(3)
-with col1:
-    temperature = st.slider("Temperature (°C)", -10, 40, 20)
-with col2:
-    humidity = st.slider("Humidity (%)", 0, 100, 50)
-with col3:
-    wind_speed = st.slider("Wind Speed (km/h)", 0, 50, 10)
-
-# Simple mock model for AQI prediction
-def predict_aqi(temp, hum, wind):
-    base_aqi = 50
-    temp_factor = (temp - 20) * 2  # Higher temp, higher AQI
-    hum_factor = (hum - 50) * 0.5  # Higher humidity, higher AQI
-    wind_factor = (25 - wind) * 2  # Lower wind speed, higher AQI
-    return max(0, min(300, base_aqi + temp_factor + hum_factor + wind_factor))
-
-predicted_aqi = predict_aqi(temperature, humidity, wind_speed)
-
-st.metric("Predicted AQI", f"{predicted_aqi:.2f}")
-
-if predicted_aqi < 50:
-    st.success("Good air quality!")
-elif predicted_aqi < 100:
-    st.info("Moderate air quality.")
-elif predicted_aqi < 150:
-    st.warning("Unhealthy for sensitive groups.")
-else:
-    st.error("Unhealthy air quality!")
-
-# Explanation section
-st.header("How it's done?")
-st.write("""
-Our AQI prediction system uses a combination of historical data, real-time measurements, and advanced machine learning models to forecast air quality across Cameroon.
-
-Key components of our system include:
-
-1. Data Collection: We gather data from various sources, including weather stations, satellite imagery, and ground-based sensors.
-
-2. Predictive Modeling: Our AI models analyze patterns in historical data to make accurate short-term and long-term predictions.
-
-3. Real-time Trend Analysis: The system continuously analyzes recent AQI trends to detect potential air quality issues before they become severe.
-
-4. Impact Simulation: Users can explore how different environmental factors affect air quality through our interactive simulation.
-
-5. Alerts and Recommendations: Based on predictions and current trends, the system provides timely alerts and actionable recommendations to help citizens stay safe.
-
-This comprehensive approach allows us to provide accurate, timely, and actionable air quality information for the people of Cameroon.
-""")
-
-st.write("Remember, while our predictions are based on advanced models, always refer to official sources for critical air quality information.")
+if __name__ == "__main__":
+    main()
