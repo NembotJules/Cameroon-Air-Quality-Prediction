@@ -48,7 +48,7 @@ def load_all_cities_latest_predictions(base_path: str, date: str) -> pd.DataFram
         if city_data is not None:
             return {
                 'city': city,
-                'PM2.5': city_data['prediction'].iloc[0]
+                'AQI': city_data['prediction'].iloc[0] * 4
             }
         return None
     
@@ -72,7 +72,7 @@ def load_forecast_data(base_path: str, city: str, start_date: datetime) -> pd.Da
         if df is not None:
             return {
                 'date': date,
-                'PM2.5': df['prediction'].iloc[0]
+                'AQI': df['prediction'].iloc[0] * 4
             }
         return None
     
