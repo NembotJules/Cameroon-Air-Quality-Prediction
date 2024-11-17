@@ -145,7 +145,7 @@ def main():
         
         st.info("ℹ️ System Information")
         #st.write("• Data updates every hour")
-        st.write("• Predictions available for 7 days")
+        st.write("• Predictions available for 5 days")
         st.write("• Currently monitoring 10 cities")
     
     # Only show main UI if data is loaded
@@ -166,7 +166,7 @@ def main():
             
             # Date selection with 7-day limit
             today = datetime.now().date()
-            max_date = today + timedelta(days=6)
+            max_date = today + timedelta(days=5)
             selected_date = st.date_input(
                 "Select a date",
                 today,
@@ -194,7 +194,7 @@ def main():
                 st.info(get_aqi_recommendation(aqi))
                 
                 # 7-Day forecast
-                st.subheader(f"7-Day AQI Forecast for {selected_city}")
+                st.subheader(f"5-Day AQI Forecast for {selected_city}")
                 
                 # Load actual forecast data
                 forecast_data = load_forecast_data(base_path, selected_city, today)
