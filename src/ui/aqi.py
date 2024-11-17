@@ -200,7 +200,7 @@ def main():
                 forecast_data = load_forecast_data(base_path, selected_city, today)
                 
                 if not forecast_data.empty:
-                    fig = px.line(forecast_data, x='date', y='PM2.5',
+                    fig = px.line(forecast_data, x='date', y='AQI',
                                 title=f"AQI Forecast - {selected_city}")
                     fig.update_layout(
                         xaxis_title="Date",
@@ -218,7 +218,7 @@ def main():
             
             if comparison_data is not None:
                 
-                fig = px.bar(comparison_data, x='city', y='PM2.5',
+                fig = px.bar(comparison_data, x='city', y='AQI',
                             title="AQI Comparison Across Cities")
                 fig.update_layout(
                     xaxis_title="City",
