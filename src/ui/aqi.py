@@ -1,208 +1,232 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
-import numpy as np
+import os
+from concurrent.futures import ThreadPoolExecutor
+import glob
+import yaml
 
-# Set page config
-st.set_page_config(
-    page_title="Cameroon Air Quality",
-    page_icon="🌍",
-    layout="wide"
-)
+# Get the directory of the current file
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Custom CSS
-st.markdown("""
-    <style>
-    .main {
-        padding: 0rem 1rem;
-    }
-    .stMetric {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-    .custom-metric-container {
-        background-color: #ffffff;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .metric-title {
-        font-size: 0.8rem;
-        color: #666;
-        margin-bottom: 0.2rem;
-    }
-    .metric-value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #333;
-    }
-    .metric-subtitle {
-        font-size: 0.7rem;
-        color: #888;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# Construct the path to the config file
+default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.yaml')
 
-def load_data(date_str):
+with open(default_config_name, "r") as file: 
+    default_config = yaml.safe_load(file)
+
+
+# Cache the data loading functions to improve performance
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_prediction_for_city_date(base_path: str, city: str, date: str) -> pd.DataFrame:
     """
-    Load prediction data for a specific date from S3
+    Load prediction data for a specific city and date
     """
-    # Replace this with your actual data loading logic
-    # Example data generation for demonstration
-    times = pd.date_range(start=f"{date_str} 00:00", end=f"{date_str} 23:59", freq='H')
-    aqi_values = np.random.normal(15, 5, len(times))
-    df = pd.DataFrame({
-        'timestamp': times,
-        'aqi': aqi_values
-    })
-    return df
+    try:
+        file_path = f"{base_path}/{date}/{city.lower()}.csv"
+        if file_path:
+            df = pd.read_csv(file_path)
+           # df.to_csv('df.csv', index=False)
+            return df
+        return None
+    except Exception as e:
+        st.error(f"Error loading prediction: {str(e)}")
+        return None
 
-def create_time_series(df):
-    """Create a time series plot using Plotly"""
-    fig = go.Figure()
+@st.cache_data(ttl=3600)
+def load_all_cities_latest_predictions(base_path: str, date: str) -> pd.DataFrame:
+    """
+    Load predictions for all cities for a specific date
+    """
+    cities = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Buea', 'Ngaoundéré', 'Ebolowa', 'Maroua', 'Bertoua', 'Garoua']
+    data = []
     
-    fig.add_trace(go.Scatter(
-        x=df['timestamp'],
-        y=df['aqi'],
-        mode='lines+markers',
-        line=dict(color='#76B947', width=2),
-        marker=dict(size=6, color='#76B947'),
-    ))
+    def load_city_data(city):
+        city_data = load_prediction_for_city_date(base_path, city, date)
+        if city_data is not None:
+            return {
+                'city': city,
+                'PM2.5': city_data['prediction'].iloc[0]
+            }
+        return None
     
-    fig.update_layout(
-        plot_bgcolor='rgba(255,255,255,0)',
-        paper_bgcolor='rgba(255,255,255,0)',
-        margin=dict(l=20, r=20, t=20, b=20),
-        xaxis=dict(
-            showgrid=True,
-            gridcolor='rgba(230,230,230,0.8)',
-            title=None,
-        ),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor='rgba(230,230,230,0.8)',
-            title='AQI',
-            range=[0, max(df['aqi']) * 1.2]
-        ),
-        height=300,
-    )
+    # Use ThreadPoolExecutor for parallel loading
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(load_city_data, cities))
     
-    return fig
+    data = [result for result in results if result is not None]
+    return pd.DataFrame(data)
 
-def create_map():
-    """Create an interactive map using Plotly"""
-    # Example coordinates for Cameroon cities
-    cities = {
-        'Yaoundé': {'lat': 3.8667, 'lon': 11.5167, 'aqi': 74},
-        'Douala': {'lat': 4.0500, 'lon': 9.7000, 'aqi': 79},
-        'Bamenda': {'lat': 5.9333, 'lon': 10.1667, 'aqi': 34},
-    }
+@st.cache_data(ttl=3600)
+def load_forecast_data(base_path: str, city: str, start_date: datetime) -> pd.DataFrame:
+    """
+    Efficiently load forecast data for a city across 7 days
+    """
+    forecast_data = []
+    dates = [(start_date + timedelta(days=x)).strftime('%Y-%m-%d') for x in range(7)]
     
-    fig = go.Figure()
-
-    # Add scatter markers for cities
-    fig.add_trace(go.Scattermapbox(
-        lat=[cities[city]['lat'] for city in cities],
-        lon=[cities[city]['lon'] for city in cities],
-        mode='markers+text',
-        marker=dict(
-            size=15,
-            color=[cities[city]['aqi'] for city in cities],
-            colorscale='RdYlGn_r',
-            showscale=True,
-            colorbar=dict(title='AQI'),
-        ),
-        text=[f"{city}: {cities[city]['aqi']}" for city in cities],
-        textposition="top center",
-        name='Cities'
-    ))
-
-    fig.update_layout(
-        mapbox_style="carto-positron",
-        mapbox=dict(
-            center=dict(lat=7.3697, lon=12.3547),
-            zoom=5
-        ),
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=400,
-    )
+    def load_date_data(date):
+        df = load_prediction_for_city_date(base_path, city, date)
+        if df is not None:
+            return {
+                'date': date,
+                'PM2.5': df['prediction'].iloc[0]
+            }
+        return None
     
-    return fig
+    # Use ThreadPoolExecutor for parallel loading
+    with ThreadPoolExecutor(max_workers=7) as executor:
+        results = list(executor.map(load_date_data, dates))
+    
+    forecast_data = [result for result in results if result is not None]
+    return pd.DataFrame(forecast_data)
+
+def get_aqi_recommendation(aqi: float) -> str:
+    """
+    Get recommendation based on AQI value
+    """
+    if aqi <= 50:
+        return "Good air quality. Ideal for outdoor activities."
+    elif aqi <= 100:
+        return "Moderate air quality. Sensitive groups should reduce prolonged outdoor exertion."
+    elif aqi <= 150:
+        return "Unhealthy for sensitive groups. Consider reducing outdoor activities."
+    else:
+        return "Unhealthy air quality. Avoid prolonged outdoor activities."
+
+def calculate_aqi_from_pm25(pm25: float) -> float:
+    """
+    Approximate AQI from pm25(simplified conversion)
+    """
+    return pm25 * 4
+
+def initialize_session_state():
+    """
+    Initialize session state variables
+    """
+    if 'data_loaded' not in st.session_state:
+        st.session_state.data_loaded = False
+
+def load_initial_data(base_path: str):
+    """
+    Load all initial data needed for the application
+    """
+    with st.spinner('Initializing Air Quality Prediction System...'):
+        # Get today's date and calculate date range
+        today = datetime.now().date()
+        
+        # Load initial data for all cities
+        initial_data = load_all_cities_latest_predictions(base_path, today.strftime('%Y-%m-%d'))
+        
+        if initial_data is not None:
+            st.session_state.data_loaded = True
+            return True
+    return False
 
 def main():
-    # Header
-    st.title("🌍 Cameroon Air Quality Dashboard")
+    st.set_page_config(page_title="Air Quality Prediction System", layout="wide")
     
-    # City selector and date picker in the sidebar
-    st.sidebar.title("Controls")
-    selected_city = st.sidebar.selectbox(
-        "Select City",
-        ["Yaoundé", "Douala", "Bamenda"]
-    )
+    # Initialize session state
+    initialize_session_state()
     
-    selected_date = st.sidebar.date_input(
-        "Select Date",
-        datetime.now().date()
-    )
+    # Sidebar for loading status and information
+    with st.sidebar:
+        st.title("System Status")
+        base_path = default_config["data"]["predictions_base_output_path"] # Replace with your actual base path
+        
+        if not st.session_state.data_loaded:
+            if load_initial_data(base_path):
+                st.success("✅ System initialized successfully")
+            else:
+                st.error("❌ Error initializing system")
+                return
+        
+        st.info("ℹ️ System Information")
+        #st.write("• Data updates every hour")
+        st.write("• Predictions available for 7 days")
+        st.write("• Currently monitoring 10 cities")
     
-    # Load data
-    df = load_data(selected_date)
-    
-    # Top metrics row
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-            <div class="custom-metric-container">
-                <div class="metric-title">Current AQI</div>
-                <div class="metric-value">76</div>
-                <div class="metric-subtitle">Updated 5 minutes ago</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-            <div class="custom-metric-container">
-                <div class="metric-title">24h Min</div>
-                <div class="metric-value">11</div>
-                <div class="metric-subtitle">at 10:09 AM</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-            <div class="custom-metric-container">
-                <div class="metric-title">24h Max</div>
-                <div class="metric-value">24</div>
-                <div class="metric-subtitle">at 2:08 PM</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    # Time series and map
-    st.markdown("### 24-Hour AQI Trend")
-    st.plotly_chart(create_time_series(df), use_container_width=True)
-    
-    st.markdown("### Regional Air Quality Map")
-    st.plotly_chart(create_map(), use_container_width=True)
-    
-    # Additional information
-    st.markdown("### Air Quality Information")
-    info_col1, info_col2 = st.columns(2)
-    
-    with info_col1:
-        st.info("""
-        **PM2.5 Concentration (2023)**
-        4.8 times the WHO annual air quality guideline value
-        """)
-    
-    with info_col2:
-        st.warning("""
-        **Air Quality Status**
-        Moderate - May cause breathing discomfort for sensitive groups
-        """)
+    # Only show main UI if data is loaded
+    if st.session_state.data_loaded:
+        # Title with icon
+        st.title("🌬️ Air Quality Prediction System")
+        
+        # Create two columns for the main layout
+        col1, col2 = st.columns([3, 2])
+        
+        with col1:
+            st.subheader("Air Quality Prediction for Cameroon")
+            st.text("Select a city and date to view predictions")
+            
+            # City selection
+            cities = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Buea', 'Ngaoundéré', 'Ebolowa', 'Maroua', 'Bertoua', 'Garoua']
+            selected_city = st.selectbox("", cities)
+            
+            # Date selection with 7-day limit
+            today = datetime.now().date()
+            max_date = today + timedelta(days=6)
+            selected_date = st.date_input(
+                "Select a date",
+                today,
+                min_value=today,
+                max_value=max_date
+            )
+            date_str = selected_date.strftime('%Y-%m-%d')
+            
+            # Load prediction data
+            prediction_data = load_prediction_for_city_date(base_path, selected_city, date_str)
+            
+            if prediction_data is not None:
+                pm25 = prediction_data['prediction'].iloc[0]
+                aqi = calculate_aqi_from_pm25(pm25)
+                
+                # Display metrics
+                metrics_col1, metrics_col2 = st.columns(2)
+                with metrics_col1:
+                    st.metric("Air Quality Index (AQI)", f"{aqi:.0f}")
+                with metrics_col2:
+                    st.metric("PM2.5 Level", f"{pm25:.1f} µg/m³")
+                
+                # Display recommendation
+                st.subheader("Recommendation")
+                st.info(get_aqi_recommendation(aqi))
+                
+                # 7-Day forecast
+                st.subheader(f"7-Day AQI Forecast for {selected_city}")
+                
+                # Load actual forecast data
+                forecast_data = load_forecast_data(base_path, selected_city, today)
+                
+                if not forecast_data.empty:
+                    fig = px.line(forecast_data, x='date', y='PM2.5',
+                                title=f"AQI Forecast - {selected_city}")
+                    fig.update_layout(
+                        xaxis_title="Date",
+                        yaxis_title="AQI",
+                        hovermode='x'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            st.subheader("City Comparison")
+            st.text("AQI across cities")
+            
+            # Load comparison data
+            comparison_data = load_all_cities_latest_predictions(base_path, date_str)
+            
+            if comparison_data is not None:
+                
+                fig = px.bar(comparison_data, x='city', y='PM2.5',
+                            title="AQI Comparison Across Cities")
+                fig.update_layout(
+                    xaxis_title="City",
+                    yaxis_title="AQI",
+                    hovermode='x'
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == "__main__":
     main()
+
