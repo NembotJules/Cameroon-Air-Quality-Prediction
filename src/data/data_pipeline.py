@@ -728,8 +728,8 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
 
 
 
-
-if __name__ == "__main__":
+@flow(name= "Air Quality Pipeline")
+def main_flow(): 
     AQI_API_URL = "http://localhost:8080/predict"
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
 
@@ -750,4 +750,11 @@ if __name__ == "__main__":
     predictions_df = create_predictions_df(predictions, date_city_df=date_city_df)
     save_predictions(predictions_df, base_output_path=default_config["data"]["predictions_base_output_path"])
 
+
+
+
+
+if __name__ == "__main__":
+    main_flow()
+    
 

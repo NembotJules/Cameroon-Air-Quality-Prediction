@@ -83,18 +83,20 @@ def load_forecast_data(base_path: str, city: str, start_date: datetime) -> pd.Da
     forecast_data = [result for result in results if result is not None]
     return pd.DataFrame(forecast_data)
 
-def get_aqi_recommendation(aqi: float) -> str:
+
+def get_aqi_recommendation_and_color(aqi: float):
     """
-    Get recommendation based on AQI value
+    Get recommendation based on AQI value and display with appropriate color
     """
     if aqi <= 50:
-        return "Good air quality. Ideal for outdoor activities."
+        st.success("Good air quality. Ideal for outdoor activities.")
     elif aqi <= 100:
-        return "Moderate air quality. Sensitive groups should reduce prolonged outdoor exertion."
+        st.warning("Moderate air quality. Sensitive groups should reduce prolonged outdoor exertion.")
     elif aqi <= 150:
-        return "Unhealthy for sensitive groups. Consider reducing outdoor activities."
+        st.error("Unhealthy for sensitive groups. Consider reducing outdoor activities.")
     else:
-        return "Unhealthy air quality. Avoid prolonged outdoor activities."
+        st.error("Unhealthy air quality. Avoid prolonged outdoor activities.")
+
 
 def calculate_aqi_from_pm25(pm25: float) -> float:
     """
@@ -125,8 +127,46 @@ def load_initial_data(base_path: str):
             return True
     return False
 
+def display_faq():
+    import streamlit as st
+
+    st.markdown("## FAQ")
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    faq_items = [
+        ("What is PM2.5?", 
+         """PM2.5 stands for fine particulate matter that is 2.5 micrometers or smaller in diameter.  
+         These tiny particles, about 1/30th the width of a human hair, are a key air pollutant.  
+         They are small enough to penetrate deep into the lungs and even enter the bloodstream, posing serious health risks."""),
+
+        ("Where does PM2.5 come from?", 
+         """PM2.5 is produced by both human activities and natural processes, including:  
+         - **Human-made sources**: Vehicle emissions, industrial processes, burning of fossil fuels, and construction dust.  
+         - **Natural sources**: Wildfires, volcanic eruptions, and dust storms."""),
+
+        ("Why is PM2.5 harmful?", 
+         """Due to their small size, PM2.5 particles can:  
+         - Penetrate the lungs and cause respiratory issues like asthma.  
+         - Enter the bloodstream, increasing the risk of heart disease and other chronic conditions.  
+         - Be particularly harmful to children, the elderly, and those with pre-existing health conditions."""),
+
+        ("How is PM2.5 measured?", 
+         """PM2.5 levels are measured in micrograms per cubic meter of air (𝜇𝑔/𝑚³) using air quality monitors or a combination of Machine Learning and Satellite Data😉.  
+         These measurements help calculate the Air Quality Index (AQI), which indicates how safe or polluted the air is."""),
+
+        ("What are safe levels of PM2.5?", 
+         """
+         **World Health Organization (WHO) guidelines**:  
+         - Annual average: 5 𝜇𝑔/𝑚³  
+         - 24-hour average: 15 𝜇𝑔/𝑚³"""),
+    ]
+
+    for question, answer in faq_items:
+        with st.expander(question):
+            st.markdown(answer)
+
 def main():
-    st.set_page_config(page_title="Air Quality Prediction System", layout="wide")
+    st.set_page_config(page_title="Cameroon Air Quality Prediction System 🇨🇲", layout="wide")
     
     # Initialize session state
     initialize_session_state()
@@ -151,7 +191,7 @@ def main():
     # Only show main UI if data is loaded
     if st.session_state.data_loaded:
         # Title with icon
-        st.title("🌬️ Air Quality Prediction System")
+        st.title("🌬️ Cameroon Air Quality Prediction System 🇨🇲")
         
         # Create two columns for the main layout
         col1, col2 = st.columns([3, 2])
@@ -191,9 +231,9 @@ def main():
                 
                 # Display recommendation
                 st.subheader("Recommendation")
-                st.info(get_aqi_recommendation(aqi))
-                
-                # 7-Day forecast
+                get_aqi_recommendation_and_color(aqi)
+                            
+                # 5-Day forecast
                 st.subheader(f"5-Day AQI Forecast for {selected_city}")
                 
                 # Load actual forecast data
@@ -208,6 +248,11 @@ def main():
                         hovermode='x'
                     )
                     st.plotly_chart(fig, use_container_width=True)
+        
+            
+
+
+        
         
         with col2:
             st.subheader("City Comparison")
@@ -226,6 +271,10 @@ def main():
                     hovermode='x'
                 )
                 st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    display_faq()
 
 if __name__ == "__main__":
     main()
