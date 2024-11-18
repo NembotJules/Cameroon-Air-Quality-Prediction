@@ -1,4 +1,5 @@
 #Mlflow artifacts
 
 /mlartifacts
-backend.db.env
+backend.db
+.env
