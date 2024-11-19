@@ -4,8 +4,12 @@ FROM python:3.10.12-slim
 # Set working directory
 WORKDIR /app
 
-# Copy the entire project structure
-COPY . /app/
+# Copy the config folder
+COPY config/ /app/
+
+# Copy the src/api folder
+
+COPY src/api/  /app/
 
 # Install dependencies
 RUN pip install --upgrade pip
