@@ -5,10 +5,10 @@ FROM python:3.10.12-slim
 WORKDIR /app
 
 # Copy the config folder
-COPY config/ /app/
+COPY config/ /app/config/
 
 # Copy the src/api folder
-COPY src/api/  /app/
+COPY src/api/  /app/src/api/
 
 #Copy requirements.txt
 COPY requirements.txt /app/
