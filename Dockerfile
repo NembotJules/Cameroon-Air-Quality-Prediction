@@ -4,11 +4,10 @@ FROM python:3.10.12-slim
 # Set working directory
 WORKDIR /app
 
-# Copy the config folder
-COPY config/ /app/config/
 
-# Copy the src/api folder
-COPY src/api/  /app/src/api/
+#Copy folders
+COPY config/ ./config/
+COPY src/api/ ./src/api/
 
 #Copy requirements.txt
 COPY requirements.txt /app/
