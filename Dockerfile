@@ -8,8 +8,10 @@ WORKDIR /app
 COPY config/ /app/
 
 # Copy the src/api folder
-
 COPY src/api/  /app/
+
+#Copy requirements.txt
+COPY requirements.txt /app/
 
 # Install dependencies
 RUN pip install --upgrade pip
