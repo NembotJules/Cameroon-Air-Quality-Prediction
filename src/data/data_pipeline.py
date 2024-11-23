@@ -730,7 +730,7 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
 
 @flow(name= "Air Quality Pipeline")
 def main_flow(): 
-    AQI_API_URL = "http://18.209.19.207/predict"
+    AQI_API_URL = "http://18.209.19.207:8000/predict"
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
 
     # date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
