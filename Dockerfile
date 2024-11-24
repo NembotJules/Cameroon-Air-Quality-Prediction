@@ -7,7 +7,7 @@ WORKDIR /app
 
 #Copy folders
 COPY config/ ./config/
-COPY src/api/ ./src/api/
+COPY src/data/ ./src/data/
 
 #Copy requirements.txt
 COPY requirements.txt /app/
@@ -17,10 +17,10 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port the app runs on
-EXPOSE 8000
+EXPOSE 8080
 
 # Set the environment variable for the config path
 ENV CONFIG_PATH=/app/config/default.yaml
 
 # Run the code
-CMD ["python3", "src/api/app.py"]
+CMD ["python3", "src/data/data_pipeline.py"]
