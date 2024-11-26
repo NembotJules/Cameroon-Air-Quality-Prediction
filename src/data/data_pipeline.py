@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import json
 import openmeteo_requests
 import requests
@@ -8,14 +8,9 @@ import numpy as np
 import os
 from retry_requests import retry
 from prefect import flow, task
-from prefect.tasks import task_input_hash
-from datetime import timedelta
+from prefect.docker import DockerImage
 import yaml
-from typing import Tuple, List, Optional
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.pipeline import FunctionTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
 
 # Get the directory of the current file
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -755,6 +750,13 @@ def main_flow():
 
 
 if __name__ == "__main__":
-    main_flow()
+    main_flow.deploy(
+        name="Air-Quality-Pipeline-Deployment",
+        work_pool_name="my-ecs-pool",
+        image=DockerImage(
+            name="prefect-flows:latest",
+            platform="linux/amd64"
+        )
+    )
     
 
