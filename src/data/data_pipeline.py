@@ -750,17 +750,24 @@ def main_flow():
 
 
 if __name__ == "__main__":
-    main_flow.deploy(
+    main_flow.from_source(
+        source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+        entrypoint="src/data/data_pipeline.py:main_flow",
+
+
+
+    ).deploy(
         name="Air-Quality-Pipeline-Deployment",
         work_pool_name="my-ecs-pool",
         image=DockerImage(
             name="prefect-flows:latest",
+            dockerfile="../../Dockerfile",
             platform="linux/amd64"
         ),
 
         schedules = [
             CronSchedule(
-                cron = "33 9 * * *",
+                cron = "44 11 * * *",
                 timezone="Africa/Douala"
             )
         ]
