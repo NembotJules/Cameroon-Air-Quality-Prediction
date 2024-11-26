@@ -4,7 +4,6 @@ import openmeteo_requests
 import requests
 import requests_cache
 import pandas as pd
-import numpy as np
 import os
 from retry_requests import retry
 from prefect import flow, task
