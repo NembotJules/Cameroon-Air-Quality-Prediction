@@ -767,7 +767,7 @@ if __name__ == "__main__":
 
         schedules = [
             CronSchedule(
-                cron = "44 11 * * *",
+                cron = "5 12 * * *",
                 timezone="Africa/Douala"
             )
         ]
