@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from retry_requests import retry
 from prefect import flow, task
+from prefect.client.schemas.schedules import CronSchedule
 from prefect.docker import DockerImage
 import yaml
 from sklearn.preprocessing import StandardScaler, LabelEncoder
@@ -755,7 +756,14 @@ if __name__ == "__main__":
         image=DockerImage(
             name="prefect-flows:latest",
             platform="linux/amd64"
-        )
+        ),
+
+        schedules = [
+            CronSchedule(
+                cron = "30 9 * * *",
+                timezone="Africa/Douala"
+            )
+        ]
     )
     
 
