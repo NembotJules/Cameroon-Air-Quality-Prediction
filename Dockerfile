@@ -15,9 +15,14 @@ COPY requirements.txt /app/
 # Install dependencies
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
+# Install Prefect
+RUN pip install prefect==3.1.2
+
+# Ensure Prefect is in the PATH
+ENV PATH="/usr/local/bin:${PATH}"
 
 # Expose the port the app runs on
-EXPOSE 8080
+#EXPOSE 8080
 
 # Set the environment variable for the config path
 ENV CONFIG_PATH=/app/config/default.yaml

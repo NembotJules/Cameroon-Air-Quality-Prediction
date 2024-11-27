@@ -7,8 +7,6 @@ import pandas as pd
 import os
 from retry_requests import retry
 from prefect import flow, task
-from prefect.client.schemas.schedules import CronSchedule
-from prefect.docker import DockerImage
 import yaml
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
@@ -723,7 +721,7 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
 
 
 
-@flow(name= "Air Quality Pipeline")
+@flow(name= "Air Quality Pipeline",log_prints=True)
 def main_flow(): 
     AQI_API_URL = "http://18.209.19.207:8000/predict"
     PREDICTIONS_OUTPUT_PATH = "predictions.csv"
@@ -750,27 +748,29 @@ def main_flow():
 
 
 if __name__ == "__main__":
-    main_flow.from_source(
-        source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-        entrypoint="src/data/data_pipeline.py:main_flow",
+ 
+ main_flow()
+    # main_flow.from_source(
+    #     source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+    #     entrypoint="src/data/data_pipeline.py:main_flow")
 
 
 
-    ).deploy(
-        name="Air-Quality-Pipeline-Deployment",
-        work_pool_name="my-ecs-pool",
-        image=DockerImage(
-            name="prefect-flows:latest",
-            dockerfile="../../Dockerfile",
-            platform="linux/amd64"
-        ),
+    # ).deploy(
+    #     name="Air-Quality-Pipeline-Deployment",
+    #     work_pool_name="docker-test",
+    #     image=DockerImage(
+    #         name="985539786581.dkr.ecr.us-east-1.amazonaws.com/prefect-flows",
+    #         platform="linux/amd64"
+    #     ),
 
-        schedules = [
-            CronSchedule(
-                cron = "5 12 * * *",
-                timezone="Africa/Douala"
-            )
-        ]
-    )
+    #     schedules = [
+    #         CronSchedule(
+    #             cron = "58 05 * * *",
+    #             timezone="Africa/Douala"
+    #         )
+    #     ], 
+        
+    # )
     
 
