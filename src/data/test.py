@@ -5,7 +5,7 @@ def greatings():
     print("Hello World")
 
 if __name__ == "__main__": 
-    greatings().from_source(
+    greatings.from_source(
         source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git", 
         entrypoint="src/data/test.py:greatings"
     ).deploy(
