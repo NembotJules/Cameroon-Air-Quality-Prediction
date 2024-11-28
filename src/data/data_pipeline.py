@@ -226,11 +226,12 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
     csv_buffer = StringIO()
     y_pipeline.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
 
 #    Upload to S3
     s3_bucket_block.upload_from_file_object(
     csv_buffer, 
-    remote_path=default_config["data"]["preprocessed_pipeline_target_path"]
+    to_path=default_config["data"]["preprocessed_pipeline_target_path"]
 )
     #y_pipeline.to_csv(default_config["data"]["preprocessed_pipeline_target_path"])
 
