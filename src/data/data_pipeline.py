@@ -5,9 +5,9 @@ import requests
 import requests_cache
 import pandas as pd
 import os
+import io
 from retry_requests import retry
 from prefect_aws.s3 import S3Bucket
-from io import StringIO
 from prefect import flow, task
 from prefect.runner.storage import GitRepository
 from prefect_github import GitHubCredentials
@@ -224,7 +224,7 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     y_pipeline.to_csv('y_pipeline.csv', index = False)
 
     s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
-    csv_buffer = StringIO()
+    csv_buffer = io.BytesIO()
     y_pipeline.to_csv(csv_buffer, index=False)
     csv_buffer.seek(0)
 
