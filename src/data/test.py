@@ -7,7 +7,6 @@ from prefect_github import GitHubCredentials
 def greatings(): 
     print("Hello World")
 
-print(GitHubCredentials.load("github-creds"))
 
     
 
