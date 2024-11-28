@@ -761,7 +761,7 @@ if __name__ == "__main__":
             ),
         entrypoint = "src/data/data_pipeline.py:main_flow"
     ).deploy(
-        name="air-quality-pipeline-managed", 
+        name="air-quality-pipeline-managed-1", 
          work_pool_name="Managed-Pool", 
      )
     # main_flow.from_source(
