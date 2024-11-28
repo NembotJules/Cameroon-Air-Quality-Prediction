@@ -231,7 +231,7 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
 #    Upload to S3
     s3_bucket_block.upload_from_file_object(
     csv_buffer, 
-    to_path=default_config["data"]["preprocessed_pipeline_target_path"]
+    to_path=default_config["data"]["preprocessed_pipeline_target_short_path"]
 )
     #y_pipeline.to_csv(default_config["data"]["preprocessed_pipeline_target_path"])
 
