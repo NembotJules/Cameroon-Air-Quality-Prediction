@@ -7,6 +7,8 @@ import pandas as pd
 import os
 from retry_requests import retry
 from prefect import flow, task
+from prefect.runner.storage import GitRepository
+from prefect_github import GitHubCredentials
 import yaml
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
@@ -749,7 +751,18 @@ def main_flow():
 
 if __name__ == "__main__":
  
- main_flow()
+ main_flow.from_source(
+        
+         source=GitRepository(
+            url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+            branch="dev",
+            credentials=GitHubCredentials.load("git-credentials")
+            ),
+        entrypoint = "src/data/data_pipeline.py:main_flow"
+    ).deploy(
+        name="air-quality-pipeline-managed", 
+         work_pool_name="Managed-Pool", 
+     )
     # main_flow.from_source(
     #     source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
     #     entrypoint="src/data/data_pipeline.py:main_flow")
