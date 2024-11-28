@@ -10,7 +10,8 @@ def greatings():
 
 if __name__ == "__main__": 
     greatings.from_source(
-        source = GitHubRepository.load("cameroon-air-quality-prediction-project-repo")
+        source = GitHubRepository.load("cameroon-air-quality-prediction-project-repo"), 
+        entrypoint = "src/data/test.py:greatings"
     ).deploy(
         name="my-first-deployment", 
          work_pool_name="Managed-Pool", 
