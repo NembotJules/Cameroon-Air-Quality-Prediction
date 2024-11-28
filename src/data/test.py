@@ -22,7 +22,7 @@ if __name__ == "__main__":
             ),
         entrypoint = "src/data/test.py:greatings"
     ).deploy(
-        name="test-pipeline-1", 
+        name="test-pipeline-2", 
          work_pool_name="Managed-Pool", 
      )
 # #     greatings.from_source(
