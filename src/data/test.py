@@ -10,7 +10,11 @@ def greatings():
 
 if __name__ == "__main__": 
     greatings.from_source(
-        source = GitHubRepository.load("cameroon-air-quality-prediction-project-repo"), 
+        
+         source=GitRepository(
+            url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+            branch="dev",
+            ),
         entrypoint = "src/data/test.py:greatings"
     ).deploy(
         name="my-first-deployment", 
