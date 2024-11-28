@@ -1,7 +1,7 @@
 from prefect import flow, task
 from prefect.runner.storage import GitRepository
 from prefect_github.repository import GitHubRepository
-from prefect.blocks.system import Secret
+from prefect_github import GitHubCredentials
 
 @flow(name="Test flow")
 def greatings(): 
@@ -9,11 +9,14 @@ def greatings():
     
 
 if __name__ == "__main__": 
+
+    
     greatings.from_source(
         
          source=GitRepository(
             url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
             branch="dev",
+            credentials=GitHubCredentials.load("github-creds")
             ),
         entrypoint = "src/data/test.py:greatings"
     ).deploy(
