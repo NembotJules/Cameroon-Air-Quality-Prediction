@@ -597,7 +597,7 @@ def save_processed_data(
     
     try:
         # Save current processed features
-        X.to_csv(save_path, index=False)
+       # X.to_csv(save_path, index=False)
         upload_df_to_s3(X, save_path)
 
         #Historical data paths
