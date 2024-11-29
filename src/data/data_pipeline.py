@@ -5,12 +5,12 @@ import requests
 import requests_cache
 import pandas as pd
 import os
-import io
 from retry_requests import retry
 from prefect_aws.s3 import S3Bucket
 from prefect import flow, task
-from prefect.runner.storage import GitRepository
 from prefect_github import GitHubCredentials
+from prefect.runner.storage import GitRepository
+from prefect.blocks.system import Secret
 import yaml
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
@@ -807,20 +807,22 @@ def main_flow():
 
 
 if __name__ == "__main__":
-    main_flow()
+    
+
+    #main_flow()
  
-#  main_flow.from_source(
+    main_flow.from_source(
         
-#          source=GitRepository(
-#             url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-#             branch="dev",
-#             credentials=GitHubCredentials.load("git-credentials")
-#             ),
-#         entrypoint = "src/data/data_pipeline.py:main_flow"
-#     ).deploy(
-#         name="air-quality-pipeline-managed-1", 
-#          work_pool_name="Managed-Pool", 
-#      )
+         source=GitRepository(
+            url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+            branch="dev",
+            credentials=GitHubCredentials.load("git-credentials")
+            ),
+        entrypoint = "src/data/data_pipeline.py:main_flow"
+    ).deploy(
+        name="air-quality-pipeline-managed-2", 
+         work_pool_name="Managed-Pool", 
+     )
     # main_flow.from_source(
     #     source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
     #     entrypoint="src/data/data_pipeline.py:main_flow")
