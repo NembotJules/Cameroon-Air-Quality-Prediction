@@ -622,6 +622,13 @@ def save_processed_data(
         historical_features_df = read_csv_from_s3(historical_features_path)
         historical_target_df = read_csv_from_s3(historical_target_path)
 
+         # Remove 'Unnamed: 0' column if it exists
+        if 'Unnamed: 0' in historical_features_df.columns:
+            historical_features_df = historical_features_df.drop('Unnamed: 0', axis=1)
+        
+        if 'Unnamed: 0' in historical_target_df.columns:
+            historical_target_df = historical_target_df.drop('Unnamed: 0', axis=1)
+
         # historical_features_df = pd.read_csv(historical_features_path)
         # historical_target_df = pd.read_csv(historical_target_path)
         
