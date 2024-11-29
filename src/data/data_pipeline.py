@@ -5,6 +5,7 @@ import requests
 import requests_cache
 import pandas as pd
 import os
+import io
 from retry_requests import retry
 from prefect_aws.s3 import S3Bucket
 from prefect import flow, task
@@ -58,6 +59,67 @@ weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min
                    "wind_gusts_10m_max", "wind_direction_10m_dominant", "shortwave_radiation_sum", "et0_fao_evapotranspiration"]
 
 s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
+
+def read_csv_from_s3(s3_path):
+
+    """
+    Read csv file path from AWS S3 and return the corresponding Dataframe
+
+    Args: 
+        s3_path: the path to the csv file
+
+
+    Returns:
+        type_: pd.DataFrame
+    """
+    # Extract bucket and key from the full S3 path
+    bucket, key = s3_path.replace('s3://', '').split('/', 1)
+    
+    # Create a BytesIO object to store the downloaded file
+    file_object = io.BytesIO()
+    
+    # Download the file to the BytesIO object
+    s3_bucket_block.download_object_to_file_object(
+        from_path=key,  # The key/path of the file in the S3 bucket
+        to_file_object=file_object  # The file-like object to write to
+    )
+    
+    # Reset the file pointer to the beginning
+    file_object.seek(0)
+    
+    # Read the CSV
+    return pd.read_csv(file_object)
+
+
+def upload_df_to_s3(df, s3_path):
+    """
+    Upload a pandas DataFrame to S3 as a CSV.
+    
+    Args:
+    - df (pandas.DataFrame): DataFrame to upload
+    - s3_path (str): Full S3 path where the file will be uploaded 
+                     (e.g., 's3://cameroon-air-quality-bucket/data/output/my_file.csv')
+    """
+    # Create a BytesIO buffer
+    csv_buffer = io.BytesIO()
+    
+    # Write the DataFrame to the buffer as CSV
+    df.to_csv(csv_buffer, index=False)
+    
+    # Reset the buffer position to the beginning
+    csv_buffer.seek(0)
+    
+    # Extract the key (path within the bucket)
+    key = s3_path.replace('s3://', '').split('/', 1)[1]
+    
+    # Upload the file object to S3
+    s3_bucket_block.upload_from_file_object(
+        csv_buffer, 
+        to_path=key
+    )
+    
+    print(f"Successfully uploaded to {s3_path}")
+
 
 @task(log_prints=True)
 def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features: List[str]) -> pd.DataFrame: 
@@ -225,17 +287,11 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     y_pipeline = combined_daily_aqi_df[default_config["target_column"]]
     y_pipeline.to_csv('y_pipeline.csv', index = False)
 
-    
-#     csv_buffer = io.BytesIO()
-#     y_pipeline.to_csv(csv_buffer, index=False)
-#     csv_buffer.seek(0)
+    upload_df_to_s3(y_pipeline, default_config["data"]["preprocessed_pipeline_target_path"])
 
-# #    Upload to S3
-#     s3_bucket_block.upload_from_file_object(
-#     csv_buffer, 
-#     to_path=default_config["data"]["preprocessed_pipeline_target_short_path"]
-# )
-    y_pipeline.to_csv(default_config["data"]["preprocessed_pipeline_target_path"])
+    
+    
+    #y_pipeline.to_csv(default_config["data"]["preprocessed_pipeline_target_path"])
 
     assert y_pipeline.shape[0] == 70, "Target dataset fetched from the API does not have 70 rows as expected"
 
@@ -549,6 +605,7 @@ def save_processed_data(
     # )
     
         X.to_csv(save_path, index=False)
+        upload_df_to_s3(X, save_path)
 
          # Read historical features and target using Prefect S3 Block
         # historical_features_df = s3_bucket_block.download_to_dataframe(from_path=default_config['data']['preprocessed_train_data_short_path'])
@@ -562,8 +619,11 @@ def save_processed_data(
         historical_target_path = default_config['data']['preprocessed_train_target_path']
 
         # Historical data features (X, y)
-        historical_features_df = pd.read_csv(historical_features_path)
-        historical_target_df = pd.read_csv(historical_target_path)
+        historical_features_df = read_csv_from_s3(historical_features_path)
+        historical_target_df = read_csv_from_s3(historical_target_path)
+
+        # historical_features_df = pd.read_csv(historical_features_path)
+        # historical_target_df = pd.read_csv(historical_target_path)
         
         # Trying to concatenate historical features df with the current fetch features to enable retraining later...
         try:
@@ -578,7 +638,8 @@ def save_processed_data(
             #     to_path= default_config['data']['preprocessed_train_data_short_path'], 
             #     index = False
             # )
-            historical_features_df.to_csv(historical_features_path, index=False)
+            #historical_features_df.to_csv(historical_features_path, index=False)
+            upload_df_to_s3(historical_features_df, historical_features_path)
         except Exception as e:
             raise Exception(
                 "Failed to concatenate current and historical features: "
@@ -589,7 +650,8 @@ def save_processed_data(
 
         try: 
             # try to load pm2_5 values (target) from the actual pipeline run
-            y_pipeline = pd.read_csv(default_config["data"]["preprocessed_pipeline_target_path"])
+            #y_pipeline = pd.read_csv(default_config["data"]["preprocessed_pipeline_target_path"])
+            y_pipeline = read_csv_from_s3(default_config["data"]["preprocessed_pipeline_target_path"])
 
         except Exception as e: 
             raise Exception(f"Failed to concatenate current and historical target values: {str(e)}")
@@ -610,7 +672,9 @@ def save_processed_data(
             #     index = False
             # )
 
-            historical_target_df.to_csv(historical_target_path, index=False)
+            #historical_target_df.to_csv(historical_target_path, index=False)
+
+            upload_df_to_s3(historical_target_df, historical_target_path)
             
         except Exception as e:
             raise Exception(
@@ -627,7 +691,8 @@ def save_processed_data(
             #     to_path= target_path, 
             #     index = False
             # )
-            y.to_csv(target_path, index=False)
+           # y.to_csv(target_path, index=False)
+            upload_df_to_s3(y, target_path)
             
     except Exception as e:
         raise Exception(f"Failed to save processed data: {str(e)}")
@@ -731,7 +796,8 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
         #     )
 
         # I also want to saved the complete prediction dataframe
-        predictions_df.to_csv(default_config["data"]["prediction_dataframe_path"], index= False)
+       # predictions_df.to_csv(default_config["data"]["prediction_dataframe_path"], index= False)
+        upload_df_to_s3(predictions_df, default_config["data"]["prediction_dataframe_path"])
         # Ensure date column is datetime type
         predictions_df['date'] = pd.to_datetime(predictions_df['date'])
         
@@ -769,7 +835,8 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
             #     index = False
             # )
 
-                city_predictions.to_csv(city_output_path, index=False)
+               # city_predictions.to_csv(city_output_path, index=False)
+                upload_df_to_s3(city_predictions, city_output_path)
                 print(f"Successfully saved predictions for {city} on {date} to {city_output_path}")
         
         print(f"Successfully saved all predictions to {base_output_path}")
@@ -809,20 +876,20 @@ def main_flow():
 if __name__ == "__main__":
     
 
-    #main_flow()
+    main_flow()
  
-    main_flow.from_source(
+    # main_flow.from_source(
         
-         source=GitRepository(
-            url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-            branch="dev",
-            credentials=GitHubCredentials.load("git-credentials")
-            ),
-        entrypoint = "src/data/data_pipeline.py:main_flow"
-    ).deploy(
-        name="air-quality-pipeline-managed-2", 
-         work_pool_name="Managed-Pool", 
-     )
+    #      source=GitRepository(
+    #         url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+    #         branch="dev",
+    #         credentials=GitHubCredentials.load("git-credentials")
+    #         ),
+    #     entrypoint = "src/data/data_pipeline.py:main_flow"
+    # ).deploy(
+    #     name="air-quality-pipeline-managed-2", 
+    #      work_pool_name="Managed-Pool", 
+    #  )
     # main_flow.from_source(
     #     source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
     #     entrypoint="src/data/data_pipeline.py:main_flow")
