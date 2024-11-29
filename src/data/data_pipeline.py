@@ -57,6 +57,8 @@ weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min
                  "precipitation_sum", "rain_sum",  "precipitation_hours", "wind_speed_10m_max",
                    "wind_gusts_10m_max", "wind_direction_10m_dominant", "shortwave_radiation_sum", "et0_fao_evapotranspiration"]
 
+s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
+
 @task(log_prints=True)
 def create_weather_df(weather_url:str, cities: List[Dict[str, float]], features: List[str]) -> pd.DataFrame: 
     """
@@ -223,7 +225,7 @@ def create_aqi_df(aqi_url:str, cities: List[Dict[str, float]], features: List[st
     y_pipeline = combined_daily_aqi_df[default_config["target_column"]]
     y_pipeline.to_csv('y_pipeline.csv', index = False)
 
-    s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
+    
     csv_buffer = io.BytesIO()
     y_pipeline.to_csv(csv_buffer, index=False)
     csv_buffer.seek(0)
@@ -539,17 +541,29 @@ def save_processed_data(
     
     try:
         # Save current processed features
-        X.to_csv(save_path, index=False)
+        #s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
+        s3_bucket_block.upload_from_dataframe(
+        dataframe=X, 
+        to_path=save_path, 
+        index=False
+    )
+    
+       # X.to_csv(save_path, index=False)
+
+         # Read historical features and target using Prefect S3 Block
+        historical_features_df = s3_bucket_block.download_to_dataframe(from_path=default_config['data']['preprocessed_train_data_short_path'])
+        historical_target_df = s3_bucket_block.download_to_dataframe(from_path=default_config['data']['preprocessed_train_target_short_path'])
+
        
         
         # Read and concatenate with historical data
         #Historical data paths
-        historical_features_path = default_config['data']['preprocessed_train_data_path']
-        historical_target_path = default_config['data']['preprocessed_train_target_path']
+        # historical_features_path = default_config['data']['preprocessed_train_data_path']
+        # historical_target_path = default_config['data']['preprocessed_train_target_path']
 
-        # Historical data features (X, y)
-        historical_features_df = pd.read_csv(historical_features_path)
-        historical_target_df = pd.read_csv(historical_target_path)
+        # # Historical data features (X, y)
+        # historical_features_df = pd.read_csv(historical_features_path)
+        # historical_target_df = pd.read_csv(historical_target_path)
         
         # Trying to concatenate historical features df with the current fetch features to enable retraining later...
         try:
@@ -558,7 +572,13 @@ def save_processed_data(
                 axis=0,
                 ignore_index=True
             )
-            historical_features_df.to_csv(historical_features_path, index=False)
+
+            s3_bucket_block.upload_from_dataframe(
+                dataframe=historical_features_df, 
+                to_path= default_config['data']['preprocessed_train_data_short_path'], 
+                index = False
+            )
+           # historical_features_df.to_csv(historical_features_path, index=False)
         except Exception as e:
             raise Exception(
                 "Failed to concatenate current and historical features: "
@@ -584,7 +604,13 @@ def save_processed_data(
             if 'Unnamed: 0': 
                 historical_target_df.drop('Unnamed: 0', axis = 1, inplace= True)
 
-            historical_target_df.to_csv(historical_target_path, index=False)
+            s3_bucket_block.upload_from_dataframe(
+                dataframe=historical_target_df, 
+                to_path= default_config['data']['preprocessed_train_target_short_path'], 
+                index = False
+            )
+
+            #historical_target_df.to_csv(historical_target_path, index=False)
             
         except Exception as e:
             raise Exception(
@@ -596,7 +622,12 @@ def save_processed_data(
         # Save target variable if provided
         if y is not None:
             target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
-            y.to_csv(target_path, index=False)
+            s3_bucket_block.upload_from_dataframe(
+                dataframe=y, 
+                to_path= target_path, 
+                index = False
+            )
+            #y.to_csv(target_path, index=False)
             
     except Exception as e:
         raise Exception(f"Failed to save processed data: {str(e)}")
@@ -691,10 +722,16 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
         │   └── ...
         └── ...
     """
-    try:
+    try: 
+
+        s3_bucket_block.upload_from_dataframe(
+                dataframe=predictions_df, 
+                to_path= default_config['data']['prediction_dataframe_short_path'], 
+                index = False
+            )
 
         # I also want to saved the complete prediction dataframe
-        predictions_df.to_csv(default_config["data"]["prediction_dataframe_path"], index= False)
+       # predictions_df.to_csv(default_config["data"]["prediction_dataframe_path"], index= False)
         # Ensure date column is datetime type
         predictions_df['date'] = pd.to_datetime(predictions_df['date'])
         
@@ -725,7 +762,14 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
                 city_output_path = f"{date_dir}/{city.lower()}.csv"
                 
                 # Save the predictions
-                city_predictions.to_csv(city_output_path, index=False)
+
+                s3_bucket_block.upload_from_dataframe(
+                dataframe=city_predictions, 
+                to_path= city_output_path, 
+                index = False
+            )
+
+               # city_predictions.to_csv(city_output_path, index=False)
                 print(f"Successfully saved predictions for {city} on {date} to {city_output_path}")
         
         print(f"Successfully saved all predictions to {base_output_path}")
@@ -753,30 +797,30 @@ def main_flow():
        # target_column='target',
     )
 
-    save_processed_data(X_processed, y, save_path= default_config["data"]["preprocessed_pipeline_features_data_path"])
+    save_processed_data(X_processed, y, save_path= default_config['data']['preprocessed_pipeline_features_data_short_path'])
     predictions = send_to_model_api(X_processed, AQI_API_URL)
     predictions_df = create_predictions_df(predictions, date_city_df=date_city_df)
-    save_predictions(predictions_df, base_output_path=default_config["data"]["predictions_base_output_path"])
+    save_predictions(predictions_df, base_output_path=default_config["data"]["predictions_base_output_short_path"])
 
 
 
 
 
 if __name__ == "__main__":
-    #main_flow()
+    main_flow()
  
- main_flow.from_source(
+#  main_flow.from_source(
         
-         source=GitRepository(
-            url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-            branch="dev",
-            credentials=GitHubCredentials.load("git-credentials")
-            ),
-        entrypoint = "src/data/data_pipeline.py:main_flow"
-    ).deploy(
-        name="air-quality-pipeline-managed-1", 
-         work_pool_name="Managed-Pool", 
-     )
+#          source=GitRepository(
+#             url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
+#             branch="dev",
+#             credentials=GitHubCredentials.load("git-credentials")
+#             ),
+#         entrypoint = "src/data/data_pipeline.py:main_flow"
+#     ).deploy(
+#         name="air-quality-pipeline-managed-1", 
+#          work_pool_name="Managed-Pool", 
+#      )
     # main_flow.from_source(
     #     source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
     #     entrypoint="src/data/data_pipeline.py:main_flow")
