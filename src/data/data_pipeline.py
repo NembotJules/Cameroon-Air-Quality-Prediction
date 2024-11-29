@@ -597,23 +597,9 @@ def save_processed_data(
     
     try:
         # Save current processed features
-        #s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
-    #     s3_bucket_block.upload_from_dataframe(
-    #     dataframe=X, 
-    #     to_path=save_path, 
-    #     index=False
-    # )
-    
         X.to_csv(save_path, index=False)
         upload_df_to_s3(X, save_path)
 
-         # Read historical features and target using Prefect S3 Block
-        # historical_features_df = s3_bucket_block.download_to_dataframe(from_path=default_config['data']['preprocessed_train_data_short_path'])
-        # historical_target_df = s3_bucket_block.download_to_dataframe(from_path=default_config['data']['preprocessed_train_target_short_path'])
-
-       
-        
-        # Read and concatenate with historical data
         #Historical data paths
         historical_features_path = default_config['data']['preprocessed_train_data_path']
         historical_target_path = default_config['data']['preprocessed_train_target_path']
@@ -622,16 +608,11 @@ def save_processed_data(
         historical_features_df = read_csv_from_s3(historical_features_path)
         historical_target_df = read_csv_from_s3(historical_target_path)
 
-         # Remove 'Unnamed: 0' column if it exists
-        if 'Unnamed: 0' in historical_features_df.columns:
-            historical_features_df = historical_features_df.drop('Unnamed: 0', axis=1)
-        
-        if 'Unnamed: 0' in historical_target_df.columns:
-            historical_target_df = historical_target_df.drop('Unnamed: 0', axis=1)
+        # Safely drop 'Unnamed: 0' column if it exists
+        for df in [historical_features_df, historical_target_df]:
+            if 'Unnamed: 0' in df.columns:
+                df.drop('Unnamed: 0', axis=1, inplace=True)
 
-        # historical_features_df = pd.read_csv(historical_features_path)
-        # historical_target_df = pd.read_csv(historical_target_path)
-        
         # Trying to concatenate historical features df with the current fetch features to enable retraining later...
         try:
             historical_features_df = pd.concat(
@@ -640,12 +621,6 @@ def save_processed_data(
                 ignore_index=True
             )
 
-            # s3_bucket_block.upload_from_dataframe(
-            #     dataframe=historical_features_df, 
-            #     to_path= default_config['data']['preprocessed_train_data_short_path'], 
-            #     index = False
-            # )
-            #historical_features_df.to_csv(historical_features_path, index=False)
             upload_df_to_s3(historical_features_df, historical_features_path)
         except Exception as e:
             raise Exception(
@@ -653,15 +628,11 @@ def save_processed_data(
                 f"{str(e)}"
             )
         
-        # Trying to concatenate historical target df with the current target values to enable retraining later...
-
+        # Trying to load pm2_5 values (target) from the actual pipeline run
         try: 
-            # try to load pm2_5 values (target) from the actual pipeline run
-            #y_pipeline = pd.read_csv(default_config["data"]["preprocessed_pipeline_target_path"])
             y_pipeline = read_csv_from_s3(default_config["data"]["preprocessed_pipeline_target_path"])
-
         except Exception as e: 
-            raise Exception(f"Failed to concatenate current and historical target values: {str(e)}")
+            raise Exception(f"Failed to read pipeline target values: {str(e)}")
 
         try:
             historical_target_df = pd.concat(
@@ -670,22 +641,11 @@ def save_processed_data(
                 ignore_index=True
             )
 
-            if 'Unnamed: 0': 
-                historical_target_df.drop('Unnamed: 0', axis = 1, inplace= True)
-
-            # s3_bucket_block.upload_from_dataframe(
-            #     dataframe=historical_target_df, 
-            #     to_path= default_config['data']['preprocessed_train_target_short_path'], 
-            #     index = False
-            # )
-
-            #historical_target_df.to_csv(historical_target_path, index=False)
-
             upload_df_to_s3(historical_target_df, historical_target_path)
             
         except Exception as e:
             raise Exception(
-                "Failed to concatenate current and historical features: "
+                "Failed to concatenate current and historical target values: "
                 f"{str(e)}"
             )
         
@@ -693,12 +653,6 @@ def save_processed_data(
         # Save target variable if provided
         if y is not None:
             target_path = f"{save_path.rsplit('.', 1)[0]}_target.csv"
-            # s3_bucket_block.upload_from_dataframe(
-            #     dataframe=y, 
-            #     to_path= target_path, 
-            #     index = False
-            # )
-           # y.to_csv(target_path, index=False)
             upload_df_to_s3(y, target_path)
             
     except Exception as e:
