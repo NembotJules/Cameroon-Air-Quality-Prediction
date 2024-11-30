@@ -94,10 +94,35 @@ class PredictionInput(BaseModel):
         ...,
         description="Dictionary containing feature arrays. Each feature must be provided as a list of float values.",
         example={
+            "weather_code": [1, 3],
             "temperature_2m_max": [25.5, 26.7],
-            "temperature_2m_min": [18.3, 19.1],
-            # Add more examples as needed
-        }
+            "temperature_2m_min": [18.3,19.2],
+            "temperature_2m_mean": [21.9, 22.5],
+            "apparent_temperature_max": [27.0, 28.1],
+            "apparent_temperature_min": [20.1, 20.8],
+            "apparent_temperature_mean": [23.5, 24.0],
+            "daylight_duration": [12.0,12.2],
+            "sunshine_duration": [10.5, 10.7],
+            "precipitation_sum": [5.3, 4.1],
+            "rain_sum": [4.5,3.9],
+            "precipitation_hours": [2,3],
+            "wind_speed_10m_max": [15.0, 16.2],
+            "wind_gusts_10m_max": [25.0,26.3],
+            "wind_direction_10m_dominant": [180,190],
+            "shortwave_radiation_sum": [200.5,105.0],
+            "et0_fao_evapotranspiration": [3.1, 3.2],
+            "city": [0,1],
+            "latitude": [4.0483, 3.848],
+            "longitude": [9.7043,11.5021],
+            "carbon_monoxide": [0.1,0.12],
+            "nitrogen_dioxide": [0.05, 0.06],
+            "sulphur_dioxide": [0.02, 0.03],
+            "ozone": [0.03,0.04],
+            "aerosol_optical_depth": [0.15,0.16],
+            "dust": [0.1,0.12],
+            "uv_index": [8, 9],
+            "uv_index_clear_sky": [10,11]
+            }
     )
 
     model_config = ConfigDict(protected_namespaces=())
