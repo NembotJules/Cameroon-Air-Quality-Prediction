@@ -1,14 +1,11 @@
 import pytest
 import pandas as pd
-import yaml
-import os
 from unittest.mock import MagicMock, patch
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 from src.models.train_model import (
     train_model,
     evaluate_model,
-    update_config_file,
     get_current_best_rmse,
 )
 
