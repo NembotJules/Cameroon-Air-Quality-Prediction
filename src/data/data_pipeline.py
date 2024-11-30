@@ -4,6 +4,7 @@ import openmeteo_requests
 import requests
 import requests_cache
 import pandas as pd
+from prefect.client.schemas.schedules import CronSchedule
 import os
 import io
 from retry_requests import retry
@@ -60,7 +61,7 @@ weather_df_features = ["weather_code", "temperature_2m_max", "temperature_2m_min
 
 s3_bucket_block = S3Bucket.load("cameroon-air-quality-bucket")
 
-def read_csv_from_s3(s3_path):
+def read_csv_from_s3(s3_path)-> pd.DataFrame:
 
     """
     Read csv file path from AWS S3 and return the corresponding Dataframe
@@ -811,7 +812,7 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
 @flow(name= "Air Quality Pipeline",log_prints=True)
 def main_flow(): 
     AQI_API_URL = "http://18.209.19.207:8000/predict"
-    PREDICTIONS_OUTPUT_PATH = "predictions.csv"
+    
 
     # date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
 
@@ -832,46 +833,24 @@ def main_flow():
 
 
 
-
-
 if __name__ == "__main__":
-    
-
     #main_flow()
- 
     main_flow.from_source(
         
          source=GitRepository(
             url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-            branch="dev",
+            branch="main",
             credentials=GitHubCredentials.load("git-credentials")
             ),
         entrypoint = "src/data/data_pipeline.py:main_flow"
     ).deploy(
         name="air-quality-pipeline-managed-2", 
-         work_pool_name="Managed-Pool", 
+        work_pool_name="Managed-Pool", 
+        schedules = [
+            CronSchedule(
+                cron = "0 1 * * *", 
+                timezone = "Africa/Douala"
+            )
+        ]
+
      )
-    # main_flow.from_source(
-    #     source="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-    #     entrypoint="src/data/data_pipeline.py:main_flow")
-
-
-
-    # ).deploy(
-    #     name="Air-Quality-Pipeline-Deployment",
-    #     work_pool_name="docker-test",
-    #     image=DockerImage(
-    #         name="985539786581.dkr.ecr.us-east-1.amazonaws.com/prefect-flows",
-    #         platform="linux/amd64"
-    #     ),
-
-    #     schedules = [
-    #         CronSchedule(
-    #             cron = "58 05 * * *",
-    #             timezone="Africa/Douala"
-    #         )
-    #     ], 
-        
-    # )
-    
-
