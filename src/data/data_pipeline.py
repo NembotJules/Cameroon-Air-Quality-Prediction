@@ -834,7 +834,7 @@ def main_flow():
 
 
 if __name__ == "__main__":
-    #main_flow()
+    
     main_flow.from_source(
         
          source=GitRepository(
@@ -844,7 +844,7 @@ if __name__ == "__main__":
             ),
         entrypoint = "src/data/data_pipeline.py:main_flow"
     ).deploy(
-        name="air-quality-pipeline-managed-2", 
+        name="air-quality-pipeline", 
         work_pool_name="Managed-Pool", 
         schedules = [
             CronSchedule(
