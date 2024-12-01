@@ -10,6 +10,7 @@ env:
   ECR_REPOSITORY: docker_api_model_service 
   ECS_SERVICE: aqi_model_api_service  
   ECS_CLUSTER: Air-Quality-Cluster 
+  ECS_SERVICE_TASK_DEFINITION_FAMILY: aqi_model_api:1
 
 jobs:
   test-and-build:
@@ -76,13 +77,13 @@ jobs:
       run: |
         # Update ECS service with the new image
         aws ecs update-service \
-          --cluster $ECS_CLUSTER \
-          --service $ECS_SERVICE \
-          --force-new-deployment \
-          --task-definition $(aws ecs describe-task-definition \
-            --task-definition $ECS_SERVICE \
-            --query 'taskDefinition.family' \
-            --output text):$(aws ecs describe-task-definition \
-              --task-definition $ECS_SERVICE \
-              --query 'taskDefinition.revision' \
-              --output text)
+        --cluster $ECS_CLUSTER \
+        --service $ECS_SERVICE \
+        --force-new-deployment \
+        --task-definition $(aws ecs describe-task-definition \
+          --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
+          --query 'taskDefinition.family' \
+          --output text):$(aws ecs describe-task-definition \
+          --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
+          --query 'taskDefinition.revision' \
+          --output text)
