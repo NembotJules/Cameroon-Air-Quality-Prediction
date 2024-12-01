@@ -23,22 +23,6 @@ def dummy_test_data():
     test_y = pd.Series([14, 15])
     return test_X, test_y
 
-# @pytest.fixture
-# def dummy_config(tmp_path):
-#     config_path = tmp_path / "default.yaml"
-#     config_data = {
-#         "mlflow": {
-#             "best_run_id": "test_run_id",
-#             "best_model_name": "test_model",
-#             "tracking_uri": "http://test_tracking_uri",
-#             "experiment_name": "test_experiment",
-#         },
-#     }
-#     with open(config_path, "w") as file:
-#         yaml.dump(config_data, file)
-#     return config_path, config_data
-
-
 
 def test_train_model_invalid_input():
     with pytest.raises(TypeError):
