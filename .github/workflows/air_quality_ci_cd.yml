@@ -6,10 +6,10 @@ on:
       - main
 
 env:
-  AWS_REGION: us-east-1  # Replace with your AWS region
-  ECR_REPOSITORY: docker_api_model_service  # Replace with your ECR repository name
-  ECS_SERVICE: aqi_model_api_service   # Replace with your ECS service name
-  ECS_CLUSTER: Air-Quality-Cluster # Replace with your ECS cluster name
+  AWS_REGION: us-east-1  
+  ECR_REPOSITORY: docker_api_model_service 
+  ECS_SERVICE: aqi_model_api_service  
+  ECS_CLUSTER: Air-Quality-Cluster 
 
 jobs:
   test-and-build:
@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
-        python-version: '3.10.12'  # Adjust to your project's Python version
+        python-version: '3.10.12'  
     
     - name: Install dependencies
       run: |
