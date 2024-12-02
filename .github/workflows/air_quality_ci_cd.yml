@@ -4,7 +4,10 @@ on:
   pull_request:
     branches:
       - main
-
+  
+  push:
+    branches: 
+      - main
 env:
   AWS_REGION: us-east-1  
   ECR_REPOSITORY: docker_api_model_service 
