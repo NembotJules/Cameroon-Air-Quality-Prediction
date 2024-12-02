@@ -77,16 +77,24 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
+        TASK_DEFINITION_FILE: task-definition.json
       run: |
-        # Update ECS service with the new image
+        # Update task definition with the new image
+        jq --arg image "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+           '.containerDefinitions[0].image = $image' \
+           $TASK_DEFINITION_FILE > updated-task-definition.json
+        
+        # Register the updated task definition
+        aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
+        
+        # Update ECS service to use the new task definition
         aws ecs update-service \
-        --cluster $ECS_CLUSTER \
-        --service $ECS_SERVICE \
-        --force-new-deployment \
-        --task-definition $(aws ecs describe-task-definition \
-          --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
-          --query 'taskDefinition.family' \
-          --output text):$(aws ecs describe-task-definition \
-          --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
-          --query 'taskDefinition.revision' \
-          --output text)
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --task-definition $(aws ecs describe-task-definition \
+            --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
+            --query 'taskDefinition.family' \
+            --output text):$(aws ecs describe-task-definition \
+            --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
+            --query 'taskDefinition.revision' \
+            --output text)
