@@ -811,7 +811,7 @@ def save_predictions(predictions_df: pd.DataFrame, base_output_path: str) -> Non
 
 @flow(name= "Air Quality Pipeline",log_prints=True)
 def main_flow(): 
-    AQI_API_URL = "AirQualityProjectLB-1881721603.us-east-1.elb.amazonaws.com" # DNS for the Air Quality Load Balancer
+    AQI_API_URL = "http://AirQualityProjectLB-1881721603.us-east-1.elb.amazonaws.com" # DNS for the Air Quality Load Balancer
     
 
     # date_city_df, predictions_df = predict_and_save(AQI_API_URL, PREDICTIONS_OUTPUT_PATH)
