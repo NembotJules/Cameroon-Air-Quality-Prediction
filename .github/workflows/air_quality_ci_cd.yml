@@ -78,6 +78,7 @@ jobs:
         pwd
         ls -la
     
+        
     - name: Update ECS service
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
