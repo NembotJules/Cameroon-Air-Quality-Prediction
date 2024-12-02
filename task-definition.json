@@ -1,6 +1,6 @@
 
 {
-    "taskDefinitionArn": "arn:aws:ecs:us-east-1:985539786581:task-definition/aqi_model_api:1",
+  
     "containerDefinitions": [
         {
             "name": "docker_api_model_service",
@@ -41,49 +41,10 @@
     "taskRoleArn": "arn:aws:iam::985539786581:role/taskExecutionRole",
     "executionRoleArn": "arn:aws:iam::985539786581:role/taskExecutionRole",
     "networkMode": "awsvpc",
-    "revision": 1,
     "volumes": [],
-    "status": "ACTIVE",
-    "requiresAttributes": [
-        {
-            "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
-        },
-        {
-            "name": "ecs.capability.execution-role-awslogs"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.ecr-auth"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.28"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.task-iam-role"
-        },
-        {
-            "name": "ecs.capability.execution-role-ecr-pull"
-        },
-        {
-            "name": "ecs.capability.extensible-ephemeral-storage"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
-        },
-        {
-            "name": "ecs.capability.task-eni"
-        },
-        {
-            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
-        }
-    ],
+   
+    
     "placementConstraints": [],
-    "compatibilities": [
-        "EC2",
-        "FARGATE"
-    ],
     "requiresCompatibilities": [
         "FARGATE"
     ],
@@ -96,7 +57,5 @@
         "cpuArchitecture": "X86_64",
         "operatingSystemFamily": "LINUX"
     },
-    "registeredAt": "2024-11-23T11:34:02.705Z",
-    "registeredBy": "arn:aws:iam::985539786581:user/nembot",
     "tags": []
 }
