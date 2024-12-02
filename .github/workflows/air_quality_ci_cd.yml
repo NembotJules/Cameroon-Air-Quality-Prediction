@@ -1,16 +1,16 @@
 name: Cameroon Air Quality Prediction CI/CD Pipeline
 
-
 on:
   pull_request:
     branches:
       - main
+
 env:
   AWS_REGION: us-east-1  
-  ECR_REPOSITORY: docker_api_model_service 
+  ECR_REPOSITORY: docker_api_model_service
   ECS_SERVICE: Cameroon-Air-Quality-Prediction-Service
-  ECS_CLUSTER: Air-Quality-Cluster 
-  ECS_SERVICE_TASK_DEFINITION_FAMILY: aqi_model_api:1
+  ECS_CLUSTER: Air-Quality-Cluster
+  ECS_SERVICE_TASK_DEFINITION_FAMILY: aqi_model_api
 
 jobs:
   test-and-build:
@@ -53,7 +53,7 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-  
+
   deploy:
     needs: test-and-build
     runs-on: ubuntu-latest
@@ -89,17 +89,20 @@ jobs:
            '.containerDefinitions[0].image = $image' \
            $TASK_DEFINITION_FILE > updated-task-definition.json
         
-        # Register the updated task definition
-        aws ecs register-task-definition --cli-input-json file://updated-task-definition.json
+        # Register the updated task definition and capture the ARN
+        LATEST_TASK_DEF=$(aws ecs register-task-definition \
+          --cli-input-json file://updated-task-definition.json \
+          --query 'taskDefinition.taskDefinitionArn' --output text)
         
+        echo "Latest task definition ARN: $LATEST_TASK_DEF"
+
         # Update ECS service to use the new task definition
         aws ecs update-service \
           --cluster $ECS_CLUSTER \
           --service $ECS_SERVICE \
-          --task-definition $(aws ecs describe-task-definition \
-            --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
-            --query 'taskDefinition.family' \
-            --output text):$(aws ecs describe-task-definition \
-            --task-definition $ECS_SERVICE_TASK_DEFINITION_FAMILY \
-            --query 'taskDefinition.revision' \
-            --output text)
+          --task-definition $LATEST_TASK_DEF
+
+        # Confirm the update
+        aws ecs describe-services \
+          --cluster $ECS_CLUSTER \
+          --services $ECS_SERVICE
