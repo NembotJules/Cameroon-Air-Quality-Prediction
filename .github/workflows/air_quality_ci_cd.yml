@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: us-east-1  
   ECR_REPOSITORY: docker_api_model_service 
-  ECS_SERVICE: aqi_model_api_service  
+  ECS_SERVICE: Cameroon-Air-Quality-Prediction-Service
   ECS_CLUSTER: Air-Quality-Cluster 
   ECS_SERVICE_TASK_DEFINITION_FAMILY: aqi_model_api:1
 
