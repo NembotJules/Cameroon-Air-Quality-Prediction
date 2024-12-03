@@ -5,6 +5,7 @@ import yaml
 from evidently.ui.workspace.cloud import CloudWorkspace
 from evidently.report import Report
 from evidently.metric_preset import DataQualityPreset
+from evidently.metric_preset import DataDriftPreset
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -23,11 +24,17 @@ async def create_project_and_report():
     project.description = "Cameroon Air Quality Prediction Project"
     project.save()
     
-    train_data = pd.read_csv(default_config['data']['raw_train_data_path'])
+    train_data = pd.read_csv(default_config['data']['preprocessed_train_data_path'])
+    test_data = pd.read_csv(default_config['data']['preprocessed_test_data_path'])
     
-    data_report = Report(metrics=[DataQualityPreset()])
-    data_report.run(reference_data=None, current_data=train_data)
-    
+    data_report = Report(
+        metrics=[
+            DataDriftPreset(stattest='psi', stattest_threshold='0.3'),
+            DataQualityPreset(),
+        ],
+    )
+
+    data_report.run(reference_data=test_data, current_data=train_data)
     ws.add_report(project.id, data_report)
     
 
