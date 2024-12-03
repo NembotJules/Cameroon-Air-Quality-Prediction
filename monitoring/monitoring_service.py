@@ -19,11 +19,11 @@ with open(default_config_name, "r") as file:
 evidently_token = os.getenv("EVIDENTLY_TOKEN")
 team_id = os.getenv("TEAM_ID")
 
-ws = CloudWorkspace(token= "dG9rbgFak65gtmhETqpgvtj+ZhHh76ajru2sbt0UIZTtd8eNvwBQJ0M7zv6g7aRt5PE6XPtNgmX6iJ8XExsSfhNC8nCcBH4Uma8mWBLMenieNqxZvBJptedd4DnxN94/DrsawFCkeSitdfayx5rVBNazri1vWAyfxbzS", 
+ws = CloudWorkspace(token=evidently_token, 
                     url="https://app.evidently.cloud")
 
 project = ws.create_project("Cameroon Air Quality Prediction Project",
-                             team_id="01938c28-7e77-7825-88fe-862af1d9b1fc")
+                             team_id=team_id)
 
 project.description = "Cameroon Air Quality Prediction Project"
 project.save()
