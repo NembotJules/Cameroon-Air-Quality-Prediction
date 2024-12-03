@@ -20,12 +20,15 @@ async def create_project_and_report():
     team_id = os.getenv("TEAM_ID")
     
     ws = CloudWorkspace(token=evidently_token, url="https://app.evidently.cloud")
-    project = ws.create_project("Cameroon Air Quality Prediction Project", team_id=team_id)
+    project = ws.get_project(default_config['evidently']['project_id'])
     project.description = "Cameroon Air Quality Prediction Project"
     project.save()
-    
-    train_data = pd.read_csv(default_config['data']['preprocessed_train_data_path'])
-    test_data = pd.read_csv(default_config['data']['preprocessed_test_data_path'])
+
+
+    # The data fetch and preprocessed each day by my data_pipeline
+    current_data = pd.read_csv(default_config['data']['preprocessed_pipeline_features_data_path']) 
+    # The test set using when evualting the performance of the model...
+    reference_data = pd.read_csv(default_config['data']['preprocessed_test_data_path'])
     
     data_report = Report(
         metrics=[
@@ -34,7 +37,7 @@ async def create_project_and_report():
         ],
     )
 
-    data_report.run(reference_data=test_data, current_data=train_data)
+    data_report.run(reference_data=reference_data, current_data=current_data)
     ws.add_report(project.id, data_report)
     
 
