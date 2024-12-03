@@ -29,6 +29,9 @@ mlflow:
     Project: Cameroon Air Quality Prediction
     Team: MaxTheKing
   tracking_uri: http://3.92.207.97:5000/
+
+evidently: 
+  project_id: 01938cbf-d200-7caa-897e-c264cf604883
 models:
   catboost:
     bagging_temperature: 1.0
