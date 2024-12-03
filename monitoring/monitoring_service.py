@@ -10,6 +10,7 @@ from evidently.ui.dashboards import DashboardPanelPlot
 from evidently.ui.dashboards import DashboardPanelTestSuite
 from evidently.ui.dashboards import PanelValue
 from evidently import metrics
+from evidently.metrics import RegressionQualityMetric
 from evidently.ui.dashboards import PlotType
 from evidently.ui.dashboards import ReportFilter
 from evidently.test_suite import TestSuite
@@ -41,6 +42,9 @@ async def create_project_and_report():
     current_data = pd.read_csv(default_config['data']['preprocessed_pipeline_features_data_path']) 
     # The test set using when evualting the performance of the model...
     reference_data = pd.read_csv(default_config['data']['preprocessed_test_data_path'])
+
+    current_data['prediction'] = default_config['data']['preprocessed_pipeline_target_path']
+    reference_data['prediction'] = default_config['data']['preprocessed_test_target_path']
     
     data_report = Report(
         metrics=[
@@ -51,6 +55,16 @@ async def create_project_and_report():
 
     data_report.run(reference_data=reference_data, current_data=current_data)
     ws.add_report(project.id, data_report)
+
+    model_report = Report(
+    metrics=[
+        RegressionQualityMetric(),
+      #  CustomValueMetric(func=r2_func, title="Current: R2 score", size=WidgetSize.HALF),
+      #  CustomValueMetric(func=variance_func, title="Current: Variance", size=WidgetSize.HALF),
+    ]
+    )
+
+    model_report.run(reference_data=reference_data, current_data=current_data)
 
     project.dashboard.add_panel(
         DashboardPanelPlot(
@@ -115,7 +129,7 @@ async def create_project_and_report():
             time_agg="1D",
         ),
         tab="Data Tests"
-)
+    )
     project.dashboard.add_panel(
         DashboardPanelTestSuite(
             title="Data drift per column in time",
@@ -128,7 +142,10 @@ async def create_project_and_report():
             time_agg="1D",
         ),
         tab="Data Tests"
-)
+    )
+
+    # Define Column Mapping
+    
 
 
     project.save()
