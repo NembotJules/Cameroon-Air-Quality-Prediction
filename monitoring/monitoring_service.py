@@ -17,12 +17,11 @@ with open(default_config_name, "r") as file:
 
 async def create_project_and_report():
     evidently_token = os.getenv("EVIDENTLY_TOKEN")
-    team_id = os.getenv("TEAM_ID")
+    #team_id = os.getenv("TEAM_ID")
     
     ws = CloudWorkspace(token=evidently_token, url="https://app.evidently.cloud")
     project = ws.get_project(default_config['evidently']['project_id'])
-    project.description = "Cameroon Air Quality Prediction Project"
-    project.save()
+    
 
 
     # The data fetch and preprocessed each day by my data_pipeline
@@ -39,6 +38,9 @@ async def create_project_and_report():
 
     data_report.run(reference_data=reference_data, current_data=current_data)
     ws.add_report(project.id, data_report)
+
+
+    project.save()
     
 
 # Run the async function
