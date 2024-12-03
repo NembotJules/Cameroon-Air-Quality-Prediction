@@ -6,6 +6,19 @@ from evidently.ui.workspace.cloud import CloudWorkspace
 from evidently.report import Report
 from evidently.metric_preset import DataQualityPreset
 from evidently.metric_preset import DataDriftPreset
+from evidently.ui.dashboards import DashboardPanelPlot
+from evidently.ui.dashboards import DashboardPanelTestSuite
+from evidently.ui.dashboards import PanelValue
+from evidently import metrics
+from evidently.ui.dashboards import PlotType
+from evidently.ui.dashboards import ReportFilter
+from evidently.test_suite import TestSuite
+from evidently.tests import *
+from evidently.test_preset import DataDriftTestPreset
+from evidently.tests.base_test import TestResult, TestStatus
+from evidently.ui.dashboards import TestFilter
+from evidently.ui.dashboards import TestSuitePanelType
+from evidently.renderers.html_widgets import WidgetSize
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -38,6 +51,84 @@ async def create_project_and_report():
 
     data_report.run(reference_data=reference_data, current_data=current_data)
     ws.add_report(project.id, data_report)
+
+    project.dashboard.add_panel(
+        DashboardPanelPlot(
+            title="Daily inference Count",
+            filter=ReportFilter(metadata_values={}, tag_values=[]),
+            values=[
+            	PanelValue(
+                	metric_id="DatasetSummaryMetric",
+                	field_path=metrics.DatasetSummaryMetric.fields.current.number_of_rows,
+                	legend="count",
+            	),
+            ],
+            plot_type=PlotType.LINE,
+            size=WidgetSize.FULL,
+        ),
+        tab="Summary"
+    )
+    project.dashboard.add_panel(
+        DashboardPanelPlot(
+            title="Share of drifting features (PSI > 0.3)",
+            filter=ReportFilter(metadata_values={}, tag_values=[]),
+            values=[
+                PanelValue(
+                	metric_id="DatasetDriftMetric",
+                	field_path="share_of_drifted_columns",
+                	legend="share",
+                ),
+            ],
+            plot_type=PlotType.LINE,
+            size=WidgetSize.FULL,
+        ),
+        tab="Summary"
+    )
+
+    drift_tests = TestSuite(
+        tests=[
+            DataDriftTestPreset(stattest_threshold=0.3),
+            TestShareOfMissingValues(lte=0.05),
+            TestNumberOfConstantColumns(eq=0),
+            TestNumberOfEmptyRows(eq=0),
+            TestNumberOfEmptyColumns(eq=0),
+            TestNumberOfDuplicatedColumns(eq=0)
+        ],
+       
+    )
+
+    drift_tests.run(reference_data=reference_data, current_data=current_data)
+
+    project.dashboard.add_panel(
+        DashboardPanelTestSuite(
+            title="Data quality tests",
+            test_filters=[
+                TestFilter(test_id="TestNumberOfConstantColumns", test_args={}),
+                TestFilter(test_id="TestShareOfMissingValues", test_args={}),
+                TestFilter(test_id="TestNumberOfEmptyRows", test_args={}),
+                TestFilter(test_id="TestNumberOfEmptyColumns", test_args={}),
+                TestFilter(test_id="TestNumberOfDuplicatedColumns", test_args={}),
+            ],
+            filter=ReportFilter(metadata_values={}, tag_values=[], include_test_suites=True),
+            size=WidgetSize.FULL,
+            panel_type=TestSuitePanelType.DETAILED,
+            time_agg="1D",
+        ),
+        tab="Data Tests"
+)
+    project.dashboard.add_panel(
+        DashboardPanelTestSuite(
+            title="Data drift per column in time",
+            test_filters=[
+                TestFilter(test_id="TestColumnDrift", test_args={}),
+            ],
+            filter=ReportFilter(metadata_values={}, tag_values=[], include_test_suites=True),
+            size=WidgetSize.FULL,
+            panel_type=TestSuitePanelType.DETAILED,
+            time_agg="1D",
+        ),
+        tab="Data Tests"
+)
 
 
     project.save()
