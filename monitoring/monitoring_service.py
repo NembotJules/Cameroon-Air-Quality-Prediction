@@ -43,8 +43,7 @@ async def create_project_and_report():
     # The test set using when evualting the performance of the model...
     reference_data = pd.read_csv(default_config['data']['preprocessed_test_data_path'])
 
-    current_data['prediction'] = default_config['data']['preprocessed_pipeline_target_path']
-    reference_data['prediction'] = default_config['data']['preprocessed_test_target_path']
+    
     
     data_report = Report(
         metrics=[
