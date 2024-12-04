@@ -7,7 +7,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
-  train-model:
+  retrain-model:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -24,11 +24,20 @@ jobs:
           pip install -r requirements.txt
       
       - name: Train Model
-        run: python src/models/train_model.py
+        env:
+            EVIDENTLY_TOKEN: ${{ secrets.EVIDENTLY_TOKEN }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        run: |
+            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+            aws configure set region $AWS_DEFAULT_REGION
+            python src/models/train_model.py
       
 
   trigger-ci-cd:
-    needs: train-model
+    needs: retrain-model
     runs-on: ubuntu-latest
     steps:
       - name: Trigger air_quality_ci_cd Workflow
