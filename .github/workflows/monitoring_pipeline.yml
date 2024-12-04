@@ -24,6 +24,8 @@ jobs:
           pip install -r requirements.txt
       
       - name: Monitoring with the fresh data
+        env:
+          EVIDENTLY_TOKEN: ${{ secrets.EVIDENTLY_TOKEN }}
         run: python monitoring/monitoring_service.py
       
 
