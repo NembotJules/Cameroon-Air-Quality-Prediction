@@ -5,16 +5,24 @@ import yaml
 from evidently.ui.workspace.cloud import CloudWorkspace
 from evidently.report import Report
 from evidently.metric_preset import DataQualityPreset
+from evidently.metrics import ColumnDriftMetric
 from evidently.metric_preset import DataDriftPreset
 from evidently.ui.dashboards import DashboardPanelPlot
 from evidently.ui.dashboards import DashboardPanelTestSuite
 from evidently.ui.dashboards import PanelValue
+from evidently.tests import (
+    DataDriftTestPreset,
+    TestShareOfMissingValues,
+    TestNumberOfConstantColumns,
+    TestNumberOfEmptyRows,
+    TestNumberOfEmptyColumns,
+    TestNumberOfDuplicatedColumns,
+)
 from evidently import metrics
 from evidently.metrics import RegressionQualityMetric
 from evidently.ui.dashboards import PlotType
 from evidently.ui.dashboards import ReportFilter
 from evidently.test_suite import TestSuite
-from evidently.tests import *
 from evidently.test_preset import DataDriftTestPreset
 from evidently.tests.base_test import TestResult, TestStatus
 from evidently.ui.dashboards import TestFilter
