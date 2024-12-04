@@ -20,18 +20,17 @@ data:
   raw_test_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/test.csv
   raw_train_data_path: s3://cameroon-air-quality-bucket/data/train_test_data/raw_data/train.csv
   sample_submission_path: s3://cameroon-air-quality-bucket/data/train_test_data/sample_submission.csv
+evidently:
+  project_id: 01938cbf-d200-7caa-897e-c264cf604883
 mlflow:
   best_model_name: XGBR2
-  best_run_id: 6f448ee1295b4634a5afe0afacd6bad9
+  best_run_id: af19ce99db344e04a8cbf852e2241906
   experiment_name: air-quality-prediction
   tags:
     MLflow Experiment: air-quality-prediction
     Project: Cameroon Air Quality Prediction
     Team: MaxTheKing
   tracking_uri: http://3.92.207.97:5000/
-
-evidently: 
-  project_id: 01938cbf-d200-7caa-897e-c264cf604883
 models:
   catboost:
     bagging_temperature: 1.0

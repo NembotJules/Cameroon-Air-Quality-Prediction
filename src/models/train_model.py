@@ -3,6 +3,7 @@ import pandas as pd
 import yaml
 from sklearn.metrics import root_mean_squared_error
 import os
+import tempfile
 import xgboost as xgb
 from typing import Union, Tuple
 
@@ -30,23 +31,30 @@ def update_config_file(config_path: str, new_run_id: str, test_rmse: float,
         improvement = abs(current_best_rmse) - abs(test_rmse)
         print(f"Improvement in RMSE: {improvement}")
         #because test_rmse and current_best_rmse are both negative values...
-        should_update = test_rmse > current_best_rmse
+        should_update = abs(test_rmse) < abs(current_best_rmse)
     
     if should_update:
         try:
+            # Read the current config
             with open(config_path, 'r') as file:
                 config = yaml.safe_load(file)
             
-            # Update the best_run_id
-            old_run_id = config['mlflow']['best_run_id']
+            # Update the config
             config['mlflow']['best_run_id'] = new_run_id
             
-            # Save the updated config
-            with open(config_path, 'w') as file:
-                yaml.dump(config, file, default_flow_style=False)
-                
+            # Create a temporary file in the same directory
+            temp_path = tempfile.mktemp(dir=os.path.dirname(config_path))
+            
+            # Write to the temporary file
+            with open(temp_path, 'w') as temp_file:
+                yaml.dump(config, temp_file, default_flow_style=False)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+            
+            # Atomically replace the original file
+            os.replace(temp_path, config_path)
+            
             print(f"\nConfig updated successfully:")
-            print(f"Old run ID: {old_run_id}")
             print(f"New run ID: {new_run_id}")
             print(f"New best RMSE: {test_rmse}")
             
