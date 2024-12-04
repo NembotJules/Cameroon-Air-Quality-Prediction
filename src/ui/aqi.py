@@ -275,6 +275,7 @@ def main():
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     display_faq()
+    
 
 if __name__ == "__main__":
     main()
