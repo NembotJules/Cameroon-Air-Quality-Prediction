@@ -109,7 +109,7 @@ async def create_project_and_report():
 
     drift_tests = TestSuite(
         tests=[
-            DataDriftTestPreset(stattest_threshold=0.5),
+            DataDriftTestPreset(stattest_threshold=0.7),
             TestShareOfMissingValues(lte=0.05),
             TestNumberOfConstantColumns(eq=0),
             TestNumberOfEmptyRows(eq=0),
