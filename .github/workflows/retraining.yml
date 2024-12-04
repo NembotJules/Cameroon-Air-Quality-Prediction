@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  workflows: write  # Enable triggering other workflows
+  actions: write  # Enable triggering other workflows
 
 jobs:
   retrain-model:
