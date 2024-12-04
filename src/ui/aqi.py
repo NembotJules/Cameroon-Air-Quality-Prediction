@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import os
 from concurrent.futures import ThreadPoolExecutor
-import glob
+from st_files_connection import FilesConnection
 import yaml
 
 # Get the directory of the current file
@@ -16,6 +16,8 @@ default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.y
 
 with open(default_config_name, "r") as file: 
     default_config = yaml.safe_load(file)
+
+conn = st.connection('s3', type=FilesConnection)
 
 
 # Cache the data loading functions to improve performance
