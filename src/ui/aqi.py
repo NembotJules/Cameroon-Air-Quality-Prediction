@@ -18,6 +18,8 @@ default_config_name = os.path.join(current_dir, '..', '..', 'config', 'default.y
 with open(default_config_name, "r") as file: 
     default_config = yaml.safe_load(file)
 
+st.set_page_config(page_title="Cameroon Air Quality Prediction System 🇨🇲", layout="wide")
+
 conn = st.connection('s3', type=FilesConnection)
 
 
@@ -169,7 +171,7 @@ def display_faq():
             st.markdown(answer)
 
 def main():
-    st.set_page_config(page_title="Cameroon Air Quality Prediction System 🇨🇲", layout="wide")
+   
     
     # Initialize session state
     initialize_session_state()
