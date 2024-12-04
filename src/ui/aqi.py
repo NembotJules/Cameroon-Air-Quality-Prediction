@@ -262,6 +262,8 @@ def main():
             comparison_data = load_all_cities_latest_predictions(base_path, date_str)
             
             if comparison_data is not None:
+
+                st.write("Comparison DataFrame:", comparison_data)
                 
                 fig = px.bar(comparison_data, x='city', y='AQI',
                             title="AQI Comparison Across Cities")
@@ -275,7 +277,7 @@ def main():
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     display_faq()
-    
+
 
 if __name__ == "__main__":
     main()
