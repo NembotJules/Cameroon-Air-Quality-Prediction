@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1  
@@ -78,7 +79,7 @@ jobs:
         pwd
         ls -la
     
-        
+
     - name: Update ECS service
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
