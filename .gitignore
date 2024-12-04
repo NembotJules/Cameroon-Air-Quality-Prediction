@@ -3,3 +3,4 @@
 /mlartifacts
 backend.db
 .env
+.streamlit/
