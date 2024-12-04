@@ -268,7 +268,7 @@ def main():
             
             if comparison_data is not None:
 
-                st.write("Comparison DataFrame:", comparison_data)
+              #  st.write("Comparison DataFrame:", comparison_data)
                 
                 fig = px.bar(comparison_data, x='city', y='AQI',
                             title="AQI Comparison Across Cities")
