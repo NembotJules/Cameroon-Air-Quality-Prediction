@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+from prefect import flow
 import asyncio
 import yaml
 from evidently.ui.workspace.cloud import CloudWorkspace
@@ -29,6 +30,8 @@ default_config_name = os.path.join(current_dir, '..', 'config', 'default.yaml')
 with open(default_config_name, "r") as file: 
     default_config = yaml.safe_load(file)
 
+
+@flow(name="Monitoring Flow", log_prints=True)
 async def create_project_and_report():
     evidently_token = os.getenv("EVIDENTLY_TOKEN")
     #team_id = os.getenv("TEAM_ID")
@@ -141,5 +144,9 @@ async def create_project_and_report():
     project.save()
     
 
-# Run the async function
-asyncio.run(create_project_and_report())
+
+
+if __name__=="__main__": 
+    # Run the async function
+    asyncio.run(create_project_and_report())
+
