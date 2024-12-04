@@ -1,10 +1,6 @@
 import os
 import pandas as pd
-from prefect import flow
 import asyncio
-from prefect_github import GitHubCredentials
-from prefect.runner.storage import GitRepository
-from prefect.client.schemas.schedules import CronSchedule
 import yaml
 from evidently.ui.workspace.cloud import CloudWorkspace
 from evidently.report import Report
@@ -34,7 +30,6 @@ with open(default_config_name, "r") as file:
     default_config = yaml.safe_load(file)
 
 
-@flow(name="Monitoring Flow", log_prints=True)
 async def create_project_and_report():
     evidently_token = os.getenv("EVIDENTLY_TOKEN")
     #team_id = os.getenv("TEAM_ID")
@@ -151,25 +146,5 @@ async def create_project_and_report():
 
 if __name__=="__main__": 
     # Run the async function
-    # asyncio.run(create_project_and_report())
-    create_project_and_report.from_source(
-        
-         source=GitRepository(
-            url="https://github.com/NembotJules/Cameroon-Air-Quality-Prediction.git",
-            branch="main",
-            credentials=GitHubCredentials.load("git-credentials")
-            ),
-        entrypoint = "monitoring/monitoring_service.py:create_project_and_report"
-    ).deploy(
-        name="Monitoring Service Pipeline", 
-        work_pool_name="Managed-Pool", 
-        schedules = [
-            CronSchedule(
-                cron = "5 1 * * *", 
-                timezone = "Africa/Douala"
-            )
-        ]
-
-     )
-
-
+    asyncio.run(create_project_and_report())
+    
