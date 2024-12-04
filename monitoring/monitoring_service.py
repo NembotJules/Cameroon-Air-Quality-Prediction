@@ -56,6 +56,15 @@ async def create_project_and_report():
     data_report.run(reference_data=reference_data, current_data=current_data)
     ws.add_report(project.id, data_report)
 
+    model_report = Report(
+    metrics=[
+        RegressionQualityMetric(),
+      #  CustomValueMetric(func=r2_func, title="Current: R2 score", size=WidgetSize.HALF),
+      #  CustomValueMetric(func=variance_func, title="Current: Variance", size=WidgetSize.HALF),
+    ]
+    )
+
+    model_report.run(reference_data=reference_data, current_data=current_data)
 
     project.dashboard.add_panel(
         DashboardPanelPlot(
