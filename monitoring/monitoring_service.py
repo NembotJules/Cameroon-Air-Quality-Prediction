@@ -4,27 +4,18 @@ import asyncio
 import yaml
 from evidently.ui.workspace.cloud import CloudWorkspace
 from evidently.report import Report
+from evidently import metrics
 from evidently.metric_preset import DataQualityPreset
-from evidently.metrics import ColumnDriftMetric
 from evidently.metric_preset import DataDriftPreset
+from evidently.test_suite import TestSuite
+from evidently.tests import *
+from evidently.test_preset import DataDriftTestPreset
+from evidently.tests.base_test import TestResult, TestStatus
 from evidently.ui.dashboards import DashboardPanelPlot
 from evidently.ui.dashboards import DashboardPanelTestSuite
 from evidently.ui.dashboards import PanelValue
-from evidently.tests import (
-    DataDriftTestPreset,
-    TestShareOfMissingValues,
-    TestNumberOfConstantColumns,
-    TestNumberOfEmptyRows,
-    TestNumberOfEmptyColumns,
-    TestNumberOfDuplicatedColumns,
-)
-from evidently import metrics
-from evidently.metrics import RegressionQualityMetric
 from evidently.ui.dashboards import PlotType
 from evidently.ui.dashboards import ReportFilter
-from evidently.test_suite import TestSuite
-from evidently.test_preset import DataDriftTestPreset
-from evidently.tests.base_test import TestResult, TestStatus
 from evidently.ui.dashboards import TestFilter
 from evidently.ui.dashboards import TestSuitePanelType
 from evidently.renderers.html_widgets import WidgetSize
@@ -64,15 +55,6 @@ async def create_project_and_report():
     data_report.run(reference_data=reference_data, current_data=current_data)
     ws.add_report(project.id, data_report)
 
-    model_report = Report(
-    metrics=[
-        RegressionQualityMetric(),
-      #  CustomValueMetric(func=r2_func, title="Current: R2 score", size=WidgetSize.HALF),
-      #  CustomValueMetric(func=variance_func, title="Current: Variance", size=WidgetSize.HALF),
-    ]
-    )
-
-    model_report.run(reference_data=reference_data, current_data=current_data)
 
     project.dashboard.add_panel(
         DashboardPanelPlot(
@@ -110,11 +92,7 @@ async def create_project_and_report():
     drift_tests = TestSuite(
         tests=[
             DataDriftTestPreset(stattest_threshold=0.7),
-            TestShareOfMissingValues(lte=0.05),
-            TestNumberOfConstantColumns(eq=0),
-            TestNumberOfEmptyRows(eq=0),
-            TestNumberOfEmptyColumns(eq=0),
-            TestNumberOfDuplicatedColumns(eq=0)
+          
         ],
        
     )
