@@ -2,6 +2,8 @@
 
 This repository hosts the codebase for an end-to-end machine learning system designed to predict air quality across the ten major cities of Cameroon. By leveraging satellite data, weather information, and advanced machine learning workflows, this project eliminates the need for unreliable ground-based sensors in resource-constrained settings.
 
+The system is fully autonomous, and get better over time with automatic model retraining and redeployment when drift is detected.
+
 # Features
 
 1. **End-to-End Architecture**:
