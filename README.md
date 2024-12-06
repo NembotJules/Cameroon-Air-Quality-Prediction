@@ -140,6 +140,7 @@ python monitoring_service.py
 
 # Project Structure
 
+```bash
 .
 ├── .github/workflows/         # GitHub Actions workflows for CI/CD, monitoring, and retraining pipelines
 │   ├── air_quality_ci_cd.yml
@@ -189,6 +190,10 @@ python monitoring_service.py
 ├── requirements.txt           # Python dependencies
 ├── task-definition.json       # ECS task definition for deployment
 └── .env                       # Environment variables (not included in the repository for security)
+
+```
+
+
 
 # Image of the System: 
 
