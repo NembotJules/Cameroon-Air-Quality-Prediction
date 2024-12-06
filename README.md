@@ -24,7 +24,7 @@ This repository hosts the codebase for an end-to-end machine learning system des
 
 3. User-Friendly Interface:
    
-- Streamlit Cloud hosts an interactive UI for visualizing air quality predictions and insights.
+- Streamlit Cloud host an interactive UI for visualizing air quality predictions and insights.
 
 # System Architecture
 
